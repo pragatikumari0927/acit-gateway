@@ -1,0 +1,318 @@
+/* Custom styles for grok-utils GitHub Pages landing site */
+/* Dark mode by default + bolder typography for a stronger, more modern feel */
+
+:root {
+  /* Slightly bolder base */
+  --md-text-font: "system-ui", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Make headings much bolder */
+.md-typeset h1 {
+  font-weight: 800 !important;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+}
+
+.md-typeset h2 {
+  font-weight: 700 !important;
+  letter-spacing: -0.015em;
+}
+
+.md-typeset h3 {
+  font-weight: 600 !important;
+}
+
+/* Header title bolder */
+.md-header__title {
+  font-weight: 700;
+}
+
+/* Stronger emphasis on the first intro paragraph on home */
+.md-typeset > p:first-of-type {
+  font-weight: 500;
+}
+
+/* Make inline code and keys pop more */
+.md-typeset code,
+.md-typeset kbd {
+  font-weight: 600;
+}
+
+/* Bolder navigation items */
+.md-nav__link {
+  font-weight: 500;
+}
+
+.md-nav__link--active {
+  font-weight: 700;
+}
+
+/* Enhance admonitions and tables for boldness */
+.md-typeset .admonition {
+  border-width: 2px;
+}
+
+.md-typeset table th {
+  font-weight: 700;
+}
+
+/* Dark mode specific tweaks for more impact */
+[data-md-color-scheme="slate"] {
+  /* Brighter teal accent feels bolder on dark */
+  --md-accent-fg-color: #14b8a6;
+  --md-accent-fg-color--transparent: rgba(20, 184, 166, 0.1);
+
+  /* Slightly stronger primary indigo */
+  --md-primary-fg-color: #6366f1;
+}
+
+/* Light mode keeps original but headings still bold */
+[data-md-color-scheme="default"] {
+  --md-accent-fg-color: #7c3aed;
+}
+
+/* Make the top navigation a bit more prominent */
+.md-header {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+[data-md-color-scheme="slate"] .md-header {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Hero image on home - slight lift */
+.md-typeset img[alt*="Grok Build CLI Utilities"] {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+}
+
+/* ========================================
+   GROK BUILD CLI UTILITIES - ARSENAL-STYLE LANDING
+   Matches the bold, dark, modern showcase aesthetic of grok-build-arsenal
+   ======================================== */
+
+.grok-landing {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #0a0a0a;
+  color: #e4e4e7;
+  line-height: 1.5;
+}
+
+.grok-landing .font-display {
+  font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  font-weight: 600;
+}
+
+/* Full bleed dark for landing */
+.md-content__inner,
+.md-typeset {
+  max-width: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.grok-landing h1,
+.grok-landing h2 {
+  font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+/* Navbar like arsenal */
+.grok-nav {
+  background: #0a0a0a;
+  border-bottom: 1px solid #27272a;
+  backdrop-filter: blur(12px);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.grok-card {
+  background: #111113;
+  border: 1px solid #27272a;
+  border-radius: 16px;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s;
+  padding: 1.5rem;
+}
+
+.grok-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  border-color: #3f3f46;
+}
+
+.stat-number {
+  font-size: 2.25rem;
+  line-height: 2.5rem;
+  font-weight: 700;
+  font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.section-header {
+  font-size: 2rem;
+  line-height: 2.25rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  margin-bottom: 1rem;
+}
+
+/* Buttons matching arsenal */
+.grok-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 2rem;
+  border-radius: 12px;
+  background: white;
+  color: #18181b;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.1s ease;
+}
+
+.grok-btn-primary:hover {
+  background: #f4f4f5;
+  transform: translateY(-1px);
+}
+
+.grok-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 2rem;
+  border-radius: 12px;
+  border: 1px solid #3f3f46;
+  background: transparent;
+  color: #e4e4e7;
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: all 0.1s ease;
+}
+
+.grok-btn-secondary:hover {
+  background: #18181b;
+  border-color: #52525b;
+}
+
+/* Tags */
+.grok-tag {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.125rem 0.625rem;
+  border-radius: 9999px;
+  background: #18181b;
+  color: #a1a1aa;
+  border: 1px solid #27272a;
+}
+
+.grok-tag-flagship {
+  background: #052e16;
+  color: #4ade80;
+  border-color: #166534;
+}
+
+/* Code blocks in landing */
+.grok-code {
+  background: #09090b;
+  border: 1px solid #27272a;
+  border-radius: 12px;
+  padding: 1rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.875rem;
+  overflow-x: auto;
+}
+
+/* Hide Material sidebar and default header chrome for pure landing feel on home */
+@media (min-width: 1220px) {
+  .grok-landing ~ .md-sidebar--primary,
+  .grok-landing ~ .md-sidebar--secondary {
+    display: none !important;
+  }
+}
+
+/* Make the main content full width for landing */
+.grok-landing {
+  width: 100%;
+}
+
+.grok-landing .md-content {
+  max-width: 100% !important;
+}
+
+/* Tailwind will handle most, but ensure dark zinc palette */
+.grok-landing .bg-zinc-950 { background-color: #09090b !important; }
+.grok-landing .text-zinc-200 { color: #e4e4e7 !important; }
+.grok-landing .text-zinc-400 { color: #a1a1aa !important; }
+.grok-landing .text-zinc-500 { color: #71717a !important; }
+.grok-landing .border-zinc-800 { border-color: #27272a !important; }
+.grok-landing .bg-zinc-900 { background-color: #18181b !important; }
+
+/* ========================================
+   Hide Material chrome for pure arsenal-style landing on home
+   Use :has() so it works without depending on late JS class on html
+   ======================================== */
+body:has(.grok-landing) .md-header,
+body:has(.grok-landing) .md-sidebar,
+body:has(.grok-landing) .md-tabs,
+body:has(.grok-landing) .md-footer,
+body:has(.grok-landing) .md-announce {
+  display: none !important;
+}
+
+/* Aggressively reset all Material wrapper layers so the custom top nav
+   (grok-nav) sits flush against the top of the viewport with no extra space */
+body:has(.grok-landing) .md-main,
+body:has(.grok-landing) .md-main__inner,
+body:has(.grok-landing) .md-content,
+body:has(.grok-landing) .md-content__inner,
+body:has(.grok-landing) article.md-typeset,
+body:has(.grok-landing) .md-grid {
+  margin: 0 !important;
+  padding: 0 !important;
+  padding-top: 0 !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  display: block !important;
+}
+
+/* Make the landing div start immediately */
+body:has(.grok-landing) .grok-landing {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Fallback for older browsers or if :has not supported - also use the class */
+.grok-landing-active .md-header,
+.grok-landing-active .md-sidebar,
+.grok-landing-active .md-tabs,
+.grok-landing-active .md-footer {
+  display: none !important;
+}
+
+/* Make sure Tailwind CDN classes win over some Material resets */
+.grok-landing * {
+  box-sizing: border-box;
+}
+
+/* Force horizontal text for nav buttons and promo cards to fix vertical/garbled button text */
+.grok-nav a,
+.grok-landing .bg-white.rounded-2xl {
+  writing-mode: horizontal-tb !important;
+  text-orientation: mixed !important;
+  flex-direction: row !important;
+}
+
+.grok-nav a span,
+.grok-landing .bg-white.rounded-2xl .font-semibold {
+  display: inline !important;
+  white-space: normal !important;
+  letter-spacing: normal !important;
+}

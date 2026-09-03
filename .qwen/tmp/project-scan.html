@@ -1,0 +1,354 @@
+
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background:#0d1117; color:#c9d1d9; line-height:1.6; }
+  .container { max-width:1100px; margin:0 auto; padding:24px; }
+  h1 { color:#58a6ff; font-size:1.8rem; border-bottom:1px solid #21262d; padding-bottom:12px; margin-bottom:20px; }
+  h2 { color:#79c0ff; font-size:1.3rem; margin:28px 0 12px; border-left:3px solid #58a6ff; padding-left:12px; }
+  h3 { color:#d2a8ff; font-size:1.05rem; margin:16px 0 8px; }
+  p, li { font-size:0.92rem; }
+  ul { padding-left:20px; margin:8px 0; }
+  li { margin:4px 0; }
+  .badge { display:inline-block; padding:2px 10px; border-radius:12px; font-size:0.78rem; font-weight:600; margin-right:6px; }
+  .green  { background:#238636; color:#fff; }
+  .yellow { background:#9e6a03; color:#fff; }
+  .red    { background:#da3633; color:#fff; }
+  .blue   { background:#1f6feb; color:#fff; }
+  .gray   { background:#30363d; color:#8b949e; }
+  .card { background:#161b22; border:1px solid #21262d; border-radius:8px; padding:16px; margin:12px 0; }
+  .card-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(300px,1fr)); gap:12px; }
+  table { width:100%; border-collapse:collapse; margin:12px 0; font-size:0.88rem; overflow-x:auto; display:block; }
+  th,td { border:1px solid #21262d; padding:8px 12px; text-align:left; white-space:nowrap; }
+  th { background:#21262d; color:#79c0ff; }
+  .progress-bar { background:#21262d; border-radius:8px; height:24px; overflow:hidden; margin:8px 0; }
+  .progress-fill { height:100%; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:600; }
+  code { background:#21262d; padding:2px 6px; border-radius:4px; font-size:0.85rem; color:#f0883e; }
+  .risk { border-left:3px solid #da3633; }
+  .ok   { border-left:3px solid #238636; }
+  .warn { border-left:3px solid #d29922; }
+  .phase-row { display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid #21262d; }
+  .phase-label { min-width:200px; }
+  .tree { font-family:monospace; font-size:0.82rem; color:#8b949e; white-space:pre; overflow-x:auto; }
+</style>
+
+<div class="container">
+
+<h1>🔍 ACIT Gateway — Full Project Scan</h1>
+<p style="color:#8b949e;margin-bottom:16px;">Generated 3 September 2026 · Internal freeze: <strong style="color:#f85149;">4 Sep (TOMORROW)</strong> · Submit: 5 Sep</p>
+<p><span class="badge blue">Track 01</span> Agentic Commerce <span class="badge yellow">Track 02</span> Defense-only IDPI <span class="badge gray">Track 05</span> Infra</p>
+
+<!-- ================================================================ -->
+<h2>1. Project Stage &amp; Build Phase Progress</h2>
+
+<div class="card">
+  <p><strong>Committed Phases (4 git commits):</strong></p>
+  <div class="phase-row"><span class="badge green">✓</span><span class="phase-label">Phase 0 — Bootstrap</span> <code>pyproject.toml</code>, deps, layout</div>
+  <div class="phase-row"><span class="badge green">✓</span><span class="phase-label">Phase 1 — Mandate + Parser (C1)</span> AP2/TAP/P3P/UAP → Mandate, 9 tests</div>
+  <div class="phase-row"><span class="badge green">✓</span><span class="phase-label">Phase 2 — Vault + ES256 (C3)</span> JWT identity, mandate store, denylist, 8 tests</div>
+  <div class="phase-row"><span class="badge yellow">~</span><span class="phase-label">Phase 3 — Firewall (C4)</span> Implemented in worktree but <strong>1 test failing</strong></div>
+  <div class="phase-row"><span class="badge yellow">~</span><span class="phase-label">Phase 4 — Catalog (C2)</span> Model + service + fixture + 11 tests (all pass)</div>
+  <div class="phase-row"><span class="badge red">✗</span><span class="phase-label">Phase 5 — Policy/Guardrails (C5)</span> <code>src/services/policy.py</code> EMPTY stub</div>
+  <div class="phase-row"><span class="badge red">✗</span><span class="phase-label">Phase 6 — Razorpay adapter</span> No implementation</div>
+  <div class="phase-row"><span class="badge red">✗</span><span class="phase-label">Phase 7 — Audit hash-chain (C6)</span> <code>src/services/audit.py</code> EMPTY stub</div>
+  <div class="phase-row"><span class="badge red">✗</span><span class="phase-label">Phase 8 — Chaos + failure (C7/C8)</span> <code>src/services/chaos.py</code> EMPTY stub</div>
+  <div class="phase-row"><span class="badge red">✗</span><span class="phase-label">Phase 9 — Show (README/video)</span> Not started</div>
+
+  <p style="margin-top:12px;"><strong>Overall completion:</strong></p>
+  <div class="progress-bar">
+    <div class="progress-fill" style="width:35%;background:linear-gradient(90deg,#238636,#d29922);">~35%</div>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<h2>2. Test Results (pytest tests/unit -q)</h2>
+
+<div class="card-grid">
+  <div class="card ok">
+    <h3>✅ 36 passed</h3>
+    <ul>
+      <li>test_protocol_parser.py — 9 tests</li>
+      <li>test_vault.py — 8 tests</li>
+      <li>test_catalog.py — 11 tests</li>
+      <li>test_firewall.py — 5 of 6 tests</li>
+    </ul>
+  </div>
+  <div class="card risk">
+    <h3>❌ 1 FAILED</h3>
+    <p><code>test_firewall_detects_zero_width</code></p>
+    <p style="color:#f85149;">Fixture <code>poison_zero_width</code> uses <code>\u200b</code> (ZWSP) in a <em>value</em> string, but the Firewall strips it before checking IDPI phrases — the resulting string <code>"buy now immediately"</code> doesn't match any denylist phrase, so <code>_contains_idpi</code> returns False.</p>
+    <p>Either the fixture needs a phrase that <em>after stripping</em> matches the denylist, or the Firewall should flag the <em>presence</em> of zero-width chars as itself suspicious.</p>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Coverage: 94% overall</h3>
+  <table>
+    <tr><th>Module</th><th>Stmts</th><th>Miss</th><th>Cover</th></tr>
+    <tr><td>src/models/mandate.py</td><td>25</td><td>0</td><td>100%</td></tr>
+    <tr><td>src/models/catalog.py</td><td>18</td><td>0</td><td>100%</td></tr>
+    <tr><td>src/utils/crypto.py</td><td>19</td><td>0</td><td>100%</td></tr>
+    <tr><td>src/services/protocol_parser.py</td><td>54</td><td>4</td><td>93%</td></tr>
+    <tr><td>src/services/vault.py</td><td>74</td><td>6</td><td>92%</td></tr>
+    <tr><td>src/services/catalog.py</td><td>34</td><td>2</td><td>94%</td></tr>
+    <tr><td>src/services/firewall.py</td><td>48</td><td>3</td><td>94%</td></tr>
+    <tr><td colspan="4" style="color:#8b949e;">8 empty stubs at 100% (0 stmts)</td></tr>
+  </table>
+  <p style="color:#d29922;">⚠ ResourceWarning: unclosed SQLite connections in Vault (26 occurrences). <code>_conn()</code> creates connections without context-managed closing.</p>
+</div>
+
+<!-- ================================================================ -->
+<h2>3. Runtime Architecture — What's Implemented vs. Stub</h2>
+
+<div class="card">
+<div class="tree">src/
+├── __init__.py           ← empty
+├── main.py               ← EMPTY (no FastAPI app)
+├── config.py             ← EMPTY
+├── api/
+│   ├── __init__.py       ← empty
+│   └── dependencies.py   ← EMPTY
+├── models/
+│   ├── __init__.py       ← empty
+│   ├── mandate.py        ✅ Protocol, OrderItem, Mandate, InternalMandate
+│   ├── catalog.py        ✅ DiscountBounds, CatalogItem, CatalogResponse
+│   ├── agent.py          ← EMPTY
+│   └── audit.py          ← EMPTY
+├── services/
+│   ├── __init__.py       ← empty
+│   ├── protocol_parser.py ✅ parse_envelope, parse_ap2/tap/p3p/uap
+│   ├── vault.py          ✅ Vault class (SQLite, register/store/verify/validate/revoke/deny)
+│   ├── firewall.py       ✅ PromptFirewall.sanitize() + helpers
+│   ├── catalog.py        ✅ CatalogService (JSON-backed)
+│   ├── policy.py         ← EMPTY
+│   ├── audit.py          ← EMPTY
+│   └── chaos.py          ← EMPTY
+└── utils/
+    ├── __init__.py       ← empty
+    └── crypto.py         ✅ generate_es256_keypair, sign_jwt, verify_jwt</div>
+</div>
+
+<!-- ================================================================ -->
+<h2>4. Implemented Module Details</h2>
+
+<div class="card-grid">
+  <div class="card">
+    <h3>C1: Protocol Parser</h3>
+    <ul>
+      <li><code>parse_envelope(protocol, envelope) → Mandate</code></li>
+      <li>Dispatches to <code>parse_ap2/tap/p3p/uap</code></li>
+      <li>All four share <code>_normalize_to_mandate</code> — best-effort key extraction</li>
+      <li>Supports flat + nested envelope shapes</li>
+      <li><code>ProtocolParseError.reason_code</code>: <code>unknown_protocol</code>, <code>invalid_envelope</code>, <code>missing_required_field</code></li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3>C3: Vault (SQLite)</h3>
+    <ul>
+      <li><code>Vault(db_path)</code> — injected, auto-creates schema</li>
+      <li>Tables: <code>agents</code>, <code>mandates</code>, <code>denylist</code></li>
+      <li><code>verify_signature</code> — ES256 JWT via PyJWT + cryptography</li>
+      <li><code>validate_mandate</code> — checks active, TTL, revoked, denied</li>
+      <li><code>VaultError.reason_code</code>: <code>unknown_agent</code>, <code>invalid_signature</code></li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3>C4: Prompt Firewall</h3>
+    <ul>
+      <li>Scans raw dict recursively</li>
+      <li>Rejects forbidden keys: <code>instructions</code>, <code>system</code>, <code>tool_description</code>, <code>developer_message</code></li>
+      <li>Strips BIDI/ZW chars, checks IDPI phrases + HTML comments</li>
+      <li><strong>Bug:</strong> ZW stripping happens <em>before</em> phrase check — doesn't flag ZW presence itself</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3>C2: Catalog Service</h3>
+    <ul>
+      <li>JSON-file backed (<code>tests/fixtures/catalogs.json</code>)</li>
+      <li><code>get_catalog(merchant_id)</code>, <code>get_item(merchant_id, sku)</code>, <code>search(merchant_id, query)</code></li>
+      <li>Model diverges from <code>design.md</code> spec (see §7 below)</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<h2>5. Domain & Documentation Layer</h2>
+
+<div class="card">
+  <h3>Documents</h3>
+  <table>
+    <tr><th>File</th><th>Purpose</th><th>Status</th></tr>
+    <tr><td><code>CONTEXT.md</code></td><td>Ubiquitous language (Mandate, Agent, Vault, Firewall…)</td><td><span class="badge green">Complete</span></td></tr>
+    <tr><td><code>docs/PRD.md</code></td><td>Problem, scope, acceptance criteria</td><td><span class="badge green">Complete</span></td></tr>
+    <tr><td><code>docs/ARCHITECTURE.md</code></td><td>Mermaid diagrams, C1–C8 map, security model</td><td><span class="badge green">Complete</span></td></tr>
+    <tr><td><code>docs/design.md</code></td><td>Detailed contracts, data models, API, policy rules</td><td><span class="badge green">Complete</span></td></tr>
+    <tr><td><code>AGENTS.md</code></td><td>Agent instructions, build phases, constraints</td><td><span class="badge green">Complete</span></td></tr>
+    <tr><td><code>RULES.md</code></td><td>Coding/testing/security/git checklist</td><td><span class="badge green">Complete</span></td></tr>
+    <tr><td><code>phases.md</code></td><td>10-day build plan, per-task checkboxes</td><td><span class="badge yellow">Outdated</span> (all unchecked)</td></tr>
+    <tr><td><code>memory.md</code></td><td>Project progress log</td><td><span class="badge yellow">Stale</span> (only 26 Aug entry)</td></tr>
+    <tr><td><code>docs/adr/0001-0003</code></td><td>Canonical Mandate, No-LLM, SQLite audit</td><td><span class="badge green">Complete</span></td></tr>
+    <tr><td><code>DECISIONS.md</code></td><td>Exists</td><td><span class="badge gray">Not read</span></td></tr>
+    <tr><td><code>README.md</code></td><td>Should describe setup/run</td><td><span class="badge red">Not written</span></td></tr>
+  </table>
+</div>
+
+<!-- ================================================================ -->
+<h2>6. Agent Tooling Landscape</h2>
+
+<div class="card">
+  <p>Three separate agent skill directories exist — duplicated across tools:</p>
+  <table>
+    <tr><th>Location</th><th>Count</th><th>Tool</th><th>Notes</th></tr>
+    <tr><td><code>.agents/skills/</code></td><td>~30 skills</td><td>Generic / shared</td><td>Contains scripts (archaeologist, dep-doctor, graveyard, scope-creep)</td></tr>
+    <tr><td><code>.claude/skills/</code></td><td>48 symlinks/dirs</td><td>Claude Code</td><td>Superset; includes writing-*, teach, triage, wayfinder</td></tr>
+    <tr><td><code>.grok/skills/</code></td><td>~30 skills + cli-utilities repo</td><td>Grok</td><td>Has unique skills: cryptography, database-perf, error-handling, chaos-testing, architecture-review</td></tr>
+    <tr><td><code>.grok/hooks/</code></td><td>4 files</td><td>Grok hooks</td><td>mempalace-mine/wake, security, validate-command</td></tr>
+    <tr><td><code>docs/agents/</code></td><td>3 files</td><td>Agent guides</td><td>issue-tracker.md, triage-labels.md, domain.md</td></tr>
+  </table>
+  <p style="color:#d29922;margin-top:8px;">⚠ Skills are triplicated. The <code>.grok/skills/cli-utilities</code> directory is a full Python package (pyproject.toml, tests, docs) — 79 files — embedded inside the project.</p>
+</div>
+
+<!-- ================================================================ -->
+<h2>7. Inconsistencies & Model Drift</h2>
+
+<div class="card risk">
+  <h3>🔴 CatalogItem model diverged from design.md spec</h3>
+  <table>
+    <tr><th>Field</th><th>design.md spec</th><th>src/models/catalog.py actual</th></tr>
+    <tr><td>price field</td><td><code>unit_amount_paise: int</code></td><td><code>price: int</code></td></tr>
+    <tr><td>discount</td><td><code>max_discount_paise: int</code></td><td><code>discount_bounds: DiscountBounds</code> (min_percent, max_percent)</td></tr>
+    <tr><td>extra fields</td><td>sku, name, currency</td><td>description, inventory, categories</td></tr>
+    <tr><td>missing</td><td>—</td><td><code>currency</code> field absent</td></tr>
+  </table>
+  <p>The Policy engine (C5) in <code>design.md</code> expects <code>CatalogItem.unit_amount_paise</code> and <code>max_discount_paise</code> — the implementation won't match when C5 is built. This must be reconciled.</p>
+</div>
+
+<div class="card warn">
+  <h3>🟡 AGENTS.md says "src/ and tests/ are empty skeleton stubs"</h3>
+  <p>This is stale — C1, C3, C4, C2 are fully implemented with passing tests. The <code>## Now</code> section should be updated to reflect current state.</p>
+</div>
+
+<div class="card warn">
+  <h3>🟡 phases.md has zero checkboxes checked</h3>
+  <p>All tasks are still <code>[ ]</code> despite Phase 1-2 being committed and Phase 3-4 (Firewall/Catalog) implemented in the working tree.</p>
+</div>
+
+<div class="card warn">
+  <h3>🟡 AGENTS.md phase numbering vs. phases.md</h3>
+  <p>AGENTS.md lists: 0=Bootstrap, 1=Parser, 2=Vault, <strong>3=Firewall</strong>, 4=Guardrails, <strong>5=Catalog</strong>.<br>
+  phases.md lists: Phase 2 = <strong>Catalog + Firewall</strong> together.<br>
+  design.md lists: C4=Firewall, C2=Catalog, C5=Policy — different numbering than both.</p>
+</div>
+
+<!-- ================================================================ -->
+<h2>8. graphify-out Analysis</h2>
+
+<div class="card">
+  <p>A knowledge graph was generated (1 Sep 2026) covering the full repo:</p>
+  <ul>
+    <li><strong>164 nodes, 219 edges, 36 communities</strong></li>
+    <li>Mostly captures the <code>.agents/skills/</code> scripts (archaeologist, dep-doctor, graveyard, scope-creep) — these dominate the graph</li>
+    <li>Core gateway code recognized as <strong>Community 4: "ACIT Gateway Models"</strong> with 13 nodes</li>
+    <li>The gateway pipeline hyperedge (Parser → Vault → Firewall → Policy) has <strong>low confidence (0.40)</strong> because Policy is empty</li>
+  </ul>
+  <h3>Key graph insight</h3>
+  <p>Mandate↔Vault and Mandate↔Parser edges are marked <strong>AMBIGUOUS</strong> — the graph tool couldn't determine the exact relationship from code alone, which is expected since they're loosely coupled by design (Vault imports Mandate model, Parser produces it).</p>
+  <p>The <code>graph.html</code> file provides an interactive visualization. <code>graph.json</code> (4019 lines) stores the full node/edge data.</p>
+</div>
+
+<!-- ================================================================ -->
+<h2>9. Working Tree State</h2>
+
+<div class="card">
+  <h3>Uncommitted changes (not staged)</h3>
+  <table>
+    <tr><th>Status</th><th>File</th><th>Nature</th></tr>
+    <tr><td><span class="badge yellow">M</span></td><td>src/services/firewall.py, catalog.py, protocol_parser.py, vault.py</td><td>Phase 3-4 implementations</td></tr>
+    <tr><td><span class="badge yellow">M</span></td><td>src/models/catalog.py, mandate.py</td><td>New models for catalog</td></tr>
+    <tr><td><span class="badge yellow">M</span></td><td>src/utils/crypto.py</td><td>Minor updates</td></tr>
+    <tr><td><span class="badge yellow">M</span></td><td>tests/unit/test_protocol_parser.py, test_vault.py</td><td>Updated tests</td></tr>
+    <tr><td><span class="badge red">D</span></td><td>tests/fixtures/envelopes.py, tests/unit/test_crypto.py</td><td>Deleted (consolidated)</td></tr>
+    <tr><td><span class="badge blue">A</span></td><td>.grok/hooks/validate-command.sh</td><td>Staged new file</td></tr>
+    <tr><td><span class="badge gray">??</span></td><td>.agents/, .claude/, .grok/, graphify-out/, data/, etc.</td><td>Untracked agent tooling + generated outputs</td></tr>
+  </table>
+  <p style="color:#d29922;">⚠ Large amount of uncommitted work. Last commit was the ADR docs; all of C4 Firewall, C2 Catalog, and their tests are uncommitted.</p>
+</div>
+
+<!-- ================================================================ -->
+<h2>10. Critical Risks & Gaps</h2>
+
+<div class="card risk">
+  <h3>🔴 CRITICAL — 5 phases remain, &lt;36 hours to freeze</h3>
+  <p>Phases 5-9 (Policy, Razorpay, Audit, Chaos, Show) are entirely unimplemented. The freeze is <strong>4 Sep 2026</strong>. This is the single biggest risk.</p>
+</div>
+
+<div class="card risk">
+  <h3>🔴 Failing test must be fixed before any commit</h3>
+  <p><code>test_firewall_detects_zero_width</code> — the Firewall strips ZW chars but doesn't flag their presence. Either change the detection logic or fix the test fixture.</p>
+</div>
+
+<div class="card risk">
+  <h3>🔴 No FastAPI app exists</h3>
+  <p><code>src/main.py</code>, <code>src/config.py</code>, <code>src/api/dependencies.py</code> are all empty. There's no HTTP layer, no <code>POST /v1/envelopes</code>, no <code>GET /v1/audit</code> — nothing that can be <code>docker compose up</code>'d.</p>
+</div>
+
+<div class="card risk">
+  <h3>🔴 CatalogItem model doesn't match design contract</h3>
+  <p><code>price</code> instead of <code>unit_amount_paise</code>, percent-based discount bounds instead of <code>max_discount_paise</code>. Policy engine can't be built on the current model without reconciliation.</p>
+</div>
+
+<div class="card warn">
+  <h3>🟡 Vault connection leak</h3>
+  <p>Every <code>Vault</code> method calls <code>self._conn()</code> → <code>sqlite3.connect()</code>. The <code>with self._conn() as conn:</code> pattern auto-commits transactions but does NOT close the connection. 26 ResourceWarnings in tests.</p>
+</div>
+
+<div class="card warn">
+  <h3>🟡 docker-compose.yml is empty</h3>
+  <p>File exists but has no content. PRD acceptance requires <code>docker compose up</code>.</p>
+</div>
+
+<div class="card warn">
+  <h3>🟡 Uncommitted work at risk</h3>
+  <p>All of C4 + C2 + their tests + model changes are only in the working tree. A <code>git clean</code> or accidental reset would lose days of work.</p>
+</div>
+
+<div class="card warn">
+  <h3>🟡 Agent skills bloat</h3>
+  <p>~200+ files across <code>.agents/</code>, <code>.claude/</code>, <code>.grok/</code> (including a full Python package in <code>.grok/skills/cli-utilities</code>). These add no value to the submission and inflate the repo. Consider <code>.gitignore</code>'ing them.</p>
+</div>
+
+<!-- ================================================================ -->
+<h2>11. Recommended Action Plan (Triage for 36h)</h2>
+
+<div class="card">
+  <table>
+    <tr><th>Priority</th><th>Action</th><th>Why</th></tr>
+    <tr><td><span class="badge red">P0</span></td><td>Fix zero-width test + commit C4/C2 work</td><td>Protect existing work</td></tr>
+    <tr><td><span class="badge red">P0</span></td><td>Reconcile CatalogItem model with design.md</td><td>Unblocks Policy engine</td></tr>
+    <tr><td><span class="badge red">P0</span></td><td>Implement C5 Policy Engine</td><td>Core guardrails for the demo</td></tr>
+    <tr><td><span class="badge red">P0</span></td><td>Implement C6 Audit Logger (hash-chain)</td><td>PRD acceptance criterion</td></tr>
+    <tr><td><span class="badge red">P0</span></td><td>Build FastAPI app + routes</td><td><code>docker compose up</code> requirement</td></tr>
+    <tr><td><span class="badge yellow">P1</span></td><td>Razorpay test-mode adapter</td><td>Track 01 Money action</td></tr>
+    <tr><td><span class="badge yellow">P1</span></td><td>Chaos test (1 graceful failure path)</td><td>PRD acceptance criterion</td></tr>
+    <tr><td><span class="badge yellow">P1</span></td><td>Dockerfile + docker-compose.yml</td><td>Acceptance criterion</td></tr>
+    <tr><td><span class="badge blue">P2</span></td><td>README + architecture diagram</td><td>Submission quality</td></tr>
+    <tr><td><span class="badge blue">P2</span></td><td>Update phases.md / memory.md / AGENTS.md</td><td>Keep docs honest</td></tr>
+    <tr><td><span class="badge gray">P3</span></td><td>5-min video + "what broke at 2 AM"</td><td>Final deliverable</td></tr>
+  </table>
+</div>
+
+<!-- ================================================================ -->
+<h2>12. Configuration & Dependencies</h2>
+
+<div class="card">
+  <h3>Tech Stack (from pyproject.toml)</h3>
+  <ul>
+    <li><strong>Runtime:</strong> Python 3.11+, FastAPI 0.104.1, Uvicorn 0.24, Pydantic 2.5, SQLAlchemy 2.0.23 (declared but unused — raw sqlite3 used instead), PyJWT 2.8, cryptography 41.0.7</li>
+    <li><strong>Dev:</strong> pytest 7.4.3, pytest-cov, ruff 0.1, mypy 1.7</li>
+    <li><strong>External:</strong> razorpay 1.4.2, httpx 0.25.1</li>
+    <li><strong>Running on:</strong> Python 3.14.6 (newer than declared 3.11 minimum)</li>
+  </ul>
+  <p style="color:#d29922;">⚠ SQLAlchemy is declared as a dependency but Vault uses raw <code>sqlite3</code>. Either remove SQLAlchemy or migrate to it.</p>
+  <p style="color:#d29922;">⚠ <code>requirements.txt</code> duplicates <code>pyproject.toml</code> dependencies with dev deps mixed in.</p>
+</div>
+
+</div>
