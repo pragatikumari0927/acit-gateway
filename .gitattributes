@@ -1,0 +1,49 @@
+# --- ACIT Gateway line-ending policy -----------------------------------------
+# Rule 1: every text file is STORED with LF in the repository.
+# Rule 2: the working tree gets LF everywhere, EXCEPT formats Windows tooling
+#         requires as CRLF (listed below).
+# Rule 3: core.autocrlf is `false` for this repo - THIS file is the single
+#         source of truth.
+
+# Default: auto-detect text vs binary; text normalizes to LF, checks out LF
+* text=auto eol=lf
+
+# --- Windows-required CRLF (cmd.exe misparses LF .bat/.cmd) ---
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+*.ps1   text eol=crlf
+*.psm1  text eol=crlf
+*.psd1  text eol=crlf
+
+# --- Must stay LF no matter what (Git Bash breaks on CRLF) ---
+*.sh    text eol=lf
+
+# --- Explicit text: diffable, normalized ---
+*.py    text
+*.toml  text
+*.cfg   text
+*.ini   text
+*.json  text
+*.yml   text
+*.yaml  text
+*.md    text
+*.txt   text
+*.html  text
+*.css   text
+*.js    text
+*.lock  text
+.env.example text
+
+# --- Binaries: never normalize, never diff ---
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.gif     binary
+*.ico     binary
+*.pdf     binary
+*.db      binary
+*.sqlite  binary
+*.sqlite3 binary
+*.woff    binary
+*.woff2   binary
+*.pyc     binary
