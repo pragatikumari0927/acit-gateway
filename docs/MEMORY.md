@@ -25,3 +25,27 @@
 - No LLM on the money path. Razorpay test keys only.
 - `AgentIdentity.issuer` / `status` are API-only (not persisted). `Proposal.merchant_id` is required for Catalog lookup and is not a DB column.
 - Retry/chaos graceful-degradation path still open (PHASES Day 7 retry unchecked).
+
+### Memory refresh (live repo)
+
+Ground truth at commit `5e7719b` (`main`). Working tree dirty (execute pipeline + docs/skills uncommitted). `pytest -q` → **98 passed**.
+
+- MemPalace re-indexed with project files and this log.
+- Vocabulary Audit complete (CONTEXT vocabulary; `scripts/vocab_check.py` still flags `order` substrings).
+- PyJWT kept (fastauth-py incompatible). ES256 via PyJWT + cryptography.
+- SQLModel + aiosqlite in `src/db/` (evolution of ADR-004 SQLite; no new ADR file).
+- Component status: C1 Parser ✅ C2 Catalog ✅ C3 Vault ✅ C4 Firewall ✅ C5 Policy ✅ C6 Audit ✅ C7 Chaos ✅ C8 dark-pattern tests ✅.
+- C4 zero-width **fixed** (ADR-0004: refuse invisible chars; soft hyphen normalised). Do not persist the stale 36/37 / C4-failing brief.
+- Execute pipeline: `run_execute` (Firewall → parsed Mandate → Guardrails → Vault → Money action → Audit). Checkout Refusals share `CheckoutExecuteResult` / `PolicyResult`. Vault/Audit process-cached; Razorpay client injected at DI.
+- `SECURITY.md` at repo root. Docs canonical under `docs/` (CONTEXT, SPEC, DECISIONS, ARCHITECTURE, adr/).
+- `providers.json`: mempalace + ai-memory + tavily enabled. `ai-memory` / `engram` CLIs not assumed present.
+
+### Current status
+- Tests: 98 passed at `5e7719b` (supersedes 85 in the Phase 2.5 note above).
+- Open: Phase 5 (README/video/form), chaos retry/graceful-failure checkboxes, webhook body still TODO.
+- Next: submission polish, not start C5.
+
+### Next steps
+- Complete chaos retry + one graceful failure (Refusal + verified Audit chain).
+- Phase 5 docs, demo video, Google Form submit.
+- Freeze 4 Sep 2026; submit 5 Sep 2026.
