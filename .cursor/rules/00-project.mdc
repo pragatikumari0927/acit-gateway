@@ -1,0 +1,30 @@
+---
+description: ACIT Gateway project context, terminology, and hard constraints
+alwaysApply: true
+---
+
+# ACIT Gateway
+
+Deterministic, test-mode bridge for agentic commerce. An Agent presents a
+Protocol envelope (AP2/TAP/P3P/UAP); the Gateway verifies the Mandate,
+sanitizes IDPI via the Firewall, enforces Guardrails, then runs a Razorpay
+test-mode Money action or a Refusal, and writes a SHA-256 hash-chained
+Audit event.
+
+## Pointers (read when the branch fires)
+
+- Terminology — `docs/CONTEXT.md` (Mandate, Agent, Firewall, Guardrail,
+  Refusal, Money action; `InternalMandate` aliases `Mandate`)
+- Agent instructions + build phases — `docs/AGENTS.md`
+- Coding/testing/security/git — `docs/RULES.md`
+- Spec — `docs/SPEC.md`; scope — `docs/PRD.md`
+- Architecture — `docs/ARCHITECTURE.md`; phases — `docs/PHASES.md`
+- Progress — `docs/MEMORY.md`; decisions — `docs/adr/`
+
+## Hard constraints
+
+- Python 3.11+, FastAPI, Pydantic v2, SQLModel, PyJWT, SQLite, Docker.
+- Razorpay test-mode keys only. ₹0 budget.
+- No LLM on the runtime path (ADR-0002). Agents are clients.
+- All external input untrusted until Firewall passes.
+- Conventional commits. Do not push unless asked.

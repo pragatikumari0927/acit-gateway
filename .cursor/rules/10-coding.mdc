@@ -1,0 +1,26 @@
+---
+description: Coding + testing standards for Python in src/ and tests/
+globs: ["src/**/*.py", "tests/**/*.py"]
+alwaysApply: false
+---
+
+# Coding standards — pointer
+
+Authoritative source: `docs/RULES.md` (Coding Standards, Testing Rules,
+Security Rules, Git & Documentation). Read it before editing.
+
+Key anchors (verify against RULES.md, do not rely on memory):
+
+- Type hints on every function; Pydantic v2 at all seams; no untyped dicts
+  as Mandates.
+- Deep services, small public interfaces; inject `db_path` and Razorpay
+  clients — never construct SQLite or Razorpay inside parser/policy/firewall.
+- Parser checks structure; Vault checks identity/TTL/revocation/denylist;
+  Guardrails come later.
+- Money actions gated: no Razorpay call unless Firewall + parser + Vault +
+  Guardrails all pass.
+- Every terminal path (allow or Refusal) writes an Audit event.
+- Refusal with `reason_code` is a coded success outcome, not a bare exception.
+- Unit tests hit service public interfaces only. `pytest tests/unit -q`
+  green at the end of each phase.
+- Vocabulary from `docs/CONTEXT.md` in types, tests, and issue titles.

@@ -1,0 +1,17 @@
+---
+description: ACIT Gateway project context and non-negotiable constraints
+alwaysApply: true
+---
+
+# ACIT Gateway
+
+- Python 3.11, FastAPI, SQLModel with SQLite. Dependencies in requirements.txt, venv at .venv/.
+- Run: `uvicorn app.main:app --reload`. Test: `pytest -q`.
+- All config/secrets come from environment variables (.env, git-ignored). Never hardcode keys or secrets.
+
+## Non-negotiable
+1. NO LLM/AI calls on the money path (payments, refunds, webhook verification, reconciliation) — deterministic code only.
+2. Payment gateways (Razorpay etc.) in TEST MODE only. Never use or commit live keys.
+3. Never commit secrets; never print .env contents or key material into chat/logs.
+4. Before declaring any task done, run `pytest -q` (or the relevant subset) and report the result.
+5. Ask before: deleting files, DB schema changes/migrations, adding dependencies, or touching CI.

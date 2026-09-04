@@ -1,0 +1,9 @@
+---
+description: Testing standards
+globs: **/tests/**,**/test_*.py
+alwaysApply: false
+---
+- pytest, Arrange-Act-Assert, one behavior per test, named test_<unit>_<scenario>_<expected>.
+- FastAPI TestClient with an isolated temp SQLite DB per fixture — never the dev database.
+- Payment tests use the gateway test-mode sandbox/fixtures; never fake the money math itself.
+- Stub external HTTP at the client boundary; no network, no sleeps — the suite must be deterministic.

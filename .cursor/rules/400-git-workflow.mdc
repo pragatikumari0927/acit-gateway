@@ -1,0 +1,6 @@
+---
+description: Git commit conventions and safety rules — use when committing changes
+---
+- Conventional Commits: feat|fix|chore|refactor|test|docs(scope): imperative summary, <= 72 chars.
+- Stage only files related to the task; never `git add -A` blindly. Review `git diff --staged` before committing.
+- Never push, force-push, or rewrite history unless explicitly asked.

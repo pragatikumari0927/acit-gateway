@@ -1,0 +1,88 @@
+# ==========================================================================
+# ACIT Gateway - .cursorignore
+# Syntax = .gitignore. Best-effort block from AI context + indexing.
+# .gitignore is already respected for indexing; entries here additionally
+# block @-mentions/agent reads. GIT remains the real secret boundary.
+# ==========================================================================
+
+# --- Credentials & secrets ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+secrets/
+.aws/
+.azure/
+.gcp/
+
+# --- Python build & cache ---
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- Node / build output ---
+node_modules/
+dist/
+build/
+*.log
+*.pid
+
+# --- Databases ---
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+data/*.db
+data/*.sqlite*
+
+# --- Virtual environments (a venv named ".env" is covered by the .env entry) ---
+venv/
+.venv/
+env/
+
+# --- Other agent tool dirs (not read by Cursor; keep context clean) ---
+.grok/
+.qwen/
+.agents/
+.claude/
+
+# --- Cursor guard scripts: the agent must not edit its own guards.
+#     Edit these MANUALLY if needed. hooks.json itself is NOT ignored. ---
+.cursor/hooks/
+.cursor/memory/
+.cursor/traces/
+
+# --- Graphify outputs (narrow: index report + graph, ignore regenerable cache) ---
+graphify-out/cache/
+graphify-out/.graphify_chunk_*.json
+.graphify_cache/
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.tmp
+.idea/
+.vscode/
+*.iml
+
+# --- Old / temp ---
+*.bak
+*.orig
+*.rej
+*.patch
+temp/
+tmp/
+scratch/

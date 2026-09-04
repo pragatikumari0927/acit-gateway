@@ -1,0 +1,12 @@
+---
+description: Python & FastAPI coding standards
+globs: **/*.py
+alwaysApply: false
+---
+- Type hints on all functions. Pydantic v2 / SQLModel models define request/response shapes.
+- Use `async def` route handlers; never block the event loop — offload sync SDK calls with `asyncio.to_thread`.
+- Structure: routers → services → repositories/models. Business logic lives in services, not in route handlers.
+- SQLModel: sessions as context managers; wrap multi-step writes in one transaction; use typed fields/relationships.
+- Errors: domain exceptions in services; translate to `HTTPException` with precise status codes at the boundary.
+- No bare `except:`; no `print()` — use `logging`.
+- Small, single-purpose functions; Python 3.11 features allowed (match, Self, tomllib).

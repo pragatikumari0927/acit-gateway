@@ -1,0 +1,12 @@
+---
+description: Hard security rules for payment / money-path code
+globs: **/payments/**,**/payment/**,**/billing/**,**/webhook*/**,**/checkout/**,**/razorpay/**
+alwaysApply: false
+---
+- DETERMINISTIC CODE ONLY: no LLM calls, no AI/ML inference, no probabilistic logic in these paths.
+- PSP (Razorpay) clients initialize in TEST mode only; key id/secret come from env vars only.
+- Verify webhook signatures (Razorpay X-Razorpay-Signature HMAC) BEFORE processing any payload; reject mismatches with 400.
+- Money amounts are integer paise/cents — never floats; never string-format currency.
+- Every write is idempotent: dedupe on provider event id / order id; duplicate events return 2xx without side effects.
+- Log transaction ids and outcomes only — never raw payloads, keys, or customer PII.
+- Any change here requires tests for the happy path AND failure paths (bad signature, duplicate event, amount mismatch).

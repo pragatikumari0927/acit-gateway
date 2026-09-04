@@ -1,0 +1,20 @@
+---
+description: Graphify knowledge graph — god nodes, communities, surprising connections, architecture overview
+alwaysApply: false
+---
+
+# Graphify knowledge graph — pointer
+
+Source: `graphify-out/GRAPH_REPORT.md` (human-readable audit: god nodes,
+communities, surprising connections). Raw data: `graphify-out/graph.json`
+(164 nodes, 219 edges, 36 communities).
+
+Reach it when asked about:
+
+- Most connected components / god nodes
+- Coupling between modules or skills
+- Surprising connections across the codebase
+- Structural overview without reading every file
+
+Do not load `graph.json` unless a query needs raw edges. The report is
+sufficient for architecture questions.

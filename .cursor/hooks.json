@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeReadFile": [
+      { "command": "C:\\Program Files\\Git\\bin\\bash.exe .cursor/hooks/guard-secrets.sh", "timeout": 10 }
+    ],
+    "beforeShellExecution": [
+      { "command": "C:\\Program Files\\Git\\bin\\bash.exe .cursor/hooks/guard-shell.sh", "timeout": 10 }
+    ]
+  }
+}

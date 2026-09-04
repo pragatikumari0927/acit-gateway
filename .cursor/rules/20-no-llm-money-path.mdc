@@ -1,0 +1,22 @@
+---
+description: ADR-0002 — no LLM on the money path; Agents are clients
+globs: ["src/**/*.py"]
+alwaysApply: false
+---
+
+# No LLM on the money path (ADR-0002)
+
+Source: `docs/adr/0002-no-llm-on-money-path.md`. Read it before adding
+any model call to runtime code.
+
+Forbidden LLM use on the runtime path:
+
+- Firewall (IDPI sanitization)
+- Guardrails (merchant policy)
+- Mandate verification
+- Vault (identity, TTL, revocation, denylist)
+- Money actions (Razorpay calls)
+- Audit hashing (SHA-256 chain, ADR-0003)
+
+All security-critical paths are deterministic code. "AI judgment" is the
+Refusal. Agents are clients, not components.
