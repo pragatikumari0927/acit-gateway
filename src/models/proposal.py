@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 from src.models.mandate import OrderItem
@@ -31,3 +33,9 @@ class PolicyResult(BaseModel):
     allowed: bool
     reason_code: str | None = None
     violations: list[str] = Field(default_factory=list)
+
+
+class CheckoutExecuteResult(PolicyResult):
+    """Money-action outcome. Refusal and allow share the PolicyResult interface."""
+
+    payment: dict[str, Any] | None = None

@@ -179,9 +179,77 @@ async def test_checkout_execute_firewall_refuses_no_money(api):
     body = response.json()
     assert body["allowed"] is False
     assert body["reason_code"] == "idpi_detected"
+    assert body["mandate_id"] == "m-route-1"
+    assert body["violations"] == ["idpi_detected"]
+    assert body.get("payment") is None
     executor.execute.assert_not_called()
     chain = await audit.get_chain("m-route-1")
     assert any(row.outcome == "refusal" for row in chain)
+
+
+@pytest.mark.asyncio
+async def test_checkout_execute_parse_error_is_refusal(api):
+    client, _, _, executor = api
+    response = await client.post(
+        "/v1/checkout/execute",
+        json={
+            "proposal": _proposal_body(),
+            "protocol": "not-a-protocol",
+            "envelope": {
+                "mandate_id": "m-route-1",
+                "agent_id": "agent-route-1",
+                "max_amount_paise": 50_000,
+                "sku_allowlist": [SKU],
+                "expires_at": "2035-01-01T00:00:00+00:00",
+            },
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["allowed"] is False
+    assert body["reason_code"] == "unknown_protocol"
+    assert body["mandate_id"] == "m-route-1"
+    assert body["violations"] == ["unknown_protocol"]
+    executor.execute.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_checkout_execute_policy_refuse_skips_money(api):
+    client, _, _, executor = api
+    response = await client.post(
+        "/v1/checkout/execute",
+        json={"proposal": _proposal_body(quoted_total_paise=99_999)},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["allowed"] is False
+    assert body["reason_code"] == "over_limit"
+    assert body["mandate_id"] == "m-route-1"
+    executor.execute.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_checkout_execute_happy_path_with_matching_envelope(api):
+    client, _, _, executor = api
+    response = await client.post(
+        "/v1/checkout/execute",
+        json={
+            "proposal": _proposal_body(),
+            "protocol": "ap2",
+            "envelope": {
+                "mandate_id": "m-route-1",
+                "agent_id": "agent-route-1",
+                "max_amount_paise": 50_000,
+                "sku_allowlist": [SKU, "SKU-002"],
+                "expires_at": "2035-01-01T00:00:00+00:00",
+            },
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["allowed"] is True
+    assert body["payment"]["id"] == "order_test_route"
+    executor.execute.assert_called_once()
 
 
 @pytest.mark.asyncio

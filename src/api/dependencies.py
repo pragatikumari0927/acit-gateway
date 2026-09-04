@@ -58,11 +58,13 @@ async def get_session() -> AsyncIterator[AsyncSession]:
         yield session
 
 
+@lru_cache
 def get_vault() -> Vault:
-    """Mandate Vault keyed off DATABASE_URL."""
+    """Mandate Vault keyed off DATABASE_URL. One instance per process."""
     return Vault(_db_path_from_url(settings.DATABASE_URL))
 
 
+@lru_cache
 def get_audit() -> AuditLogger:
     """Hash-chained Audit logger on the same SQLite file as Vault."""
     return AuditLogger(_db_path_from_url(settings.DATABASE_URL))
@@ -93,5 +95,19 @@ def get_policy(
     return PolicyEngine(vault, catalog)
 
 
-def get_executor(chaos: ChaosInjector = Depends(get_chaos)) -> PaymentExecutor:
-    return PaymentExecutor(chaos=chaos)
+@lru_cache
+def get_razorpay_client() -> object:
+    """Build the test-mode Razorpay adapter once. Never construct inside parser/policy/firewall."""
+    key_id = settings.RAZORPAY_KEY_ID
+    if not str(key_id).startswith("rzp_test_"):
+        raise RuntimeError("Razorpay TEST MODE only")
+    import razorpay
+
+    return razorpay.Client(auth=(key_id, settings.RAZORPAY_KEY_SECRET))
+
+
+def get_executor(
+    chaos: ChaosInjector = Depends(get_chaos),
+    client: object = Depends(get_razorpay_client),
+) -> PaymentExecutor:
+    return PaymentExecutor(client=client, chaos=chaos)

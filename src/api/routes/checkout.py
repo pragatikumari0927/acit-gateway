@@ -15,12 +15,12 @@ from src.api.dependencies import (
     get_policy,
     get_vault,
 )
-from src.models.proposal import PolicyResult, Proposal
+from src.models.proposal import CheckoutExecuteResult, PolicyResult, Proposal
 from src.services.audit import AuditLogger
+from src.services.checkout import run_execute
 from src.services.executor import PaymentExecutor
 from src.services.firewall import PromptFirewall
 from src.services.policy import PolicyEngine
-from src.services.protocol_parser import parse_envelope
 from src.services.vault import Vault
 
 router = APIRouter()
@@ -30,23 +30,6 @@ class CheckoutExecuteRequest(BaseModel):
     proposal: Proposal
     protocol: str | None = None
     envelope: dict[str, Any] | None = None
-
-
-async def _audit_refusal(
-    audit: AuditLogger,
-    action: str,
-    proposal: Proposal,
-    reason_code: str,
-) -> None:
-    await audit.log_entry(
-        {
-            "action": action,
-            "outcome": "refusal",
-            "agent_id": None,
-            "mandate_id": proposal.mandate_id,
-            "metadata_json": json.dumps({"reason_code": reason_code}),
-        }
-    )
 
 
 @router.post("/checkout/propose", response_model=PolicyResult)
@@ -68,7 +51,7 @@ async def propose(
     return result
 
 
-@router.post("/checkout/execute")
+@router.post("/checkout/execute", response_model=CheckoutExecuteResult)
 async def execute_checkout(
     body: CheckoutExecuteRequest,
     firewall: PromptFirewall = Depends(get_firewall),
@@ -76,52 +59,15 @@ async def execute_checkout(
     policy: PolicyEngine = Depends(get_policy),
     executor: PaymentExecutor = Depends(get_executor),
     audit: AuditLogger = Depends(get_audit),
-) -> dict[str, Any]:
-    """Firewall → Parser (if envelope) → Vault/Policy → Executor → Audit.
-
-    Fail closed: Firewall Refusal writes Audit and never calls Razorpay.
-    """
-    proposal = body.proposal
-    if body.envelope is not None:
-        ok, cleaned, reason = firewall.sanitize(body.envelope)
-        if not ok:
-            await _audit_refusal(audit, "checkout.execute", proposal, reason or "idpi_detected")
-            return {"allowed": False, "reason_code": reason or "idpi_detected"}
-        if body.protocol:
-            parse_envelope(body.protocol, cleaned or body.envelope)
-
-    result = await policy.evaluate_proposal(proposal)
-    if not result.allowed:
-        await _audit_refusal(
-            audit, "checkout.execute", proposal, result.reason_code or "mandate_invalid"
-        )
-        return result.model_dump()
-
-    mandate = await vault.get_mandate(proposal.mandate_id)
-    if mandate is None:
-        await _audit_refusal(audit, "checkout.execute", proposal, "mandate_invalid")
-        return {
-            "allowed": False,
-            "reason_code": "mandate_invalid",
-            "mandate_id": proposal.mandate_id,
-        }
-
-    try:
-        payment = executor.execute(mandate, proposal)
-    except Exception as exc:  # chaos / adapter failure — fail closed
-        await _audit_refusal(audit, "checkout.execute", proposal, "executor_failure")
-        return {
-            "allowed": False,
-            "reason_code": "executor_failure",
-            "detail": type(exc).__name__,
-        }
-
-    await audit.log_entry(
-        {
-            "action": "checkout.execute",
-            "outcome": "ok",
-            "mandate_id": proposal.mandate_id,
-            "agent_id": mandate.agent_id,
-        }
+) -> CheckoutExecuteResult:
+    """HTTP adapter for run_execute. Fail closed: Refusal never calls Razorpay."""
+    return await run_execute(
+        body.proposal,
+        protocol=body.protocol,
+        envelope=body.envelope,
+        firewall=firewall,
+        vault=vault,
+        policy=policy,
+        executor=executor,
+        audit=audit,
     )
-    return {"allowed": True, "reason_code": None, "payment": payment}

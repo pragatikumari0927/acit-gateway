@@ -1,4 +1,8 @@
-"""Canonical Mandate: the Gateway's only internal spend envelope."""
+"""Mandate model (InternalMandate) and supporting types for C1 Protocol Abstraction.
+
+Amounts in paise (int). Timestamps are timezone-aware UTC.
+All validation via Pydantic v2.
+"""
 
 from __future__ import annotations
 
@@ -9,8 +13,6 @@ from pydantic import BaseModel, Field
 
 
 class Protocol(str, Enum):
-    """Inbound Protocol envelope family."""
-
     AP2 = "ap2"
     TAP = "tap"
     P3P = "p3p"
@@ -18,8 +20,6 @@ class Protocol(str, Enum):
 
 
 class OrderItem(BaseModel):
-    """A line the Agent is authorised to buy, in paise."""
-
     sku: str
     quantity: int = Field(gt=0)
     unit_amount_paise: int = Field(ge=0)
@@ -27,8 +27,6 @@ class OrderItem(BaseModel):
 
 
 class Mandate(BaseModel):
-    """User-authorised spend envelope: amount, SKU allow-list, TTL, Agent identity."""
-
     mandate_id: str
     agent_id: str
     user_id: str | None = None
