@@ -1,0 +1,72 @@
+---
+description: "ECC security rules - use for any security-sensitive change, auth work, or input handling"
+---
+
+
+## security.md
+
+# Security Guidelines
+
+## Mandatory Security Checks
+
+Before ANY commit:
+- [ ] No hardcoded secrets (API keys, passwords, tokens)
+- [ ] All user inputs validated
+- [ ] SQL injection prevention (parameterized queries)
+- [ ] XSS prevention (sanitized HTML)
+- [ ] CSRF protection enabled
+- [ ] Authentication/authorization verified
+- [ ] Rate limiting on all endpoints
+- [ ] Error messages don't leak sensitive data
+
+## Secret Management
+
+- NEVER hardcode secrets in source code
+- ALWAYS use environment variables or a secret manager
+- Validate that required secrets are present at startup
+- Rotate any secrets that may have been exposed
+
+## Security Response Protocol
+
+If security issue found:
+1. STOP immediately
+2. Use **security-reviewer** agent
+3. Fix CRITICAL issues before continuing
+4. Rotate any exposed secrets
+5. Review entire codebase for similar issues
+
+
+## patterns.md
+
+# Common Patterns
+
+## Skeleton Projects
+
+When implementing new functionality:
+1. Search for battle-tested skeleton projects
+2. Use parallel agents to evaluate options:
+   - Security assessment
+   - Extensibility analysis
+   - Relevance scoring
+   - Implementation planning
+3. Clone best match as foundation
+4. Iterate within proven structure
+
+## Design Patterns
+
+### Repository Pattern
+
+Encapsulate data access behind a consistent interface:
+- Define standard operations: findAll, findById, create, update, delete
+- Concrete implementations handle storage details (database, API, file, etc.)
+- Business logic depends on the abstract interface, not the storage mechanism
+- Enables easy swapping of data sources and simplifies testing with mocks
+
+### API Response Format
+
+Use a consistent envelope for all API responses:
+- Include a success/status indicator
+- Include the data payload (nullable on error)
+- Include an error message field (nullable on success)
+- Include metadata for paginated responses (total, page, limit)
+

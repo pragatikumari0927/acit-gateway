@@ -1,0 +1,28 @@
+# Grok Build project config - permission denies only (no MCP/plugins).
+# ECC skills are loaded from .grok/skills/ (mirrored from .agents/skills/).
+
+[permissions]
+deny = [
+    "Bash(rm -rf *)",
+    "Bash(rm -rf /)",
+    "Bash(rm -rf ~)",
+    "Bash(rm -rf $HOME)",
+    "Bash(git push --force*)",
+    "Bash(git push -f*)",
+    "Bash(git reset --hard*)",
+    "Bash(sudo *)",
+    "Bash(curl * | sh)",
+    "Bash(curl * | bash)",
+    "Bash(wget * | sh)",
+    "Bash(wget * | bash)",
+    "Read(.env)",
+    "Read(.env.*)",
+    "Read(**/*.pem)",
+    "Read(**/*.key)",
+    "Read(**/id_rsa*)",
+    "Read(**/secrets/**)",
+    "Write(.env)",
+    "Write(.env.*)",
+    "Edit(.env)",
+    "Edit(.env.*)",
+]

@@ -162,3 +162,5 @@ Student Buildathon project — Razorpay AI Buildathon 2026.
 Not an official Razorpay product.
 
 Test-mode keys only. Internal freeze: 4 September 2026.
+
+> Agent setup (Cursor / Grok / Qwen): see [docs/AGENT-SETUP.md](docs/AGENT-SETUP.md)
