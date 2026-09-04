@@ -10,6 +10,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from src.api.routes import audit as audit_routes
+from src.api.routes import catalog as catalog_routes
+from src.api.routes import checkout as checkout_routes
+from src.api.routes import mandates as mandate_routes
 from src.config import settings
 from src.services.vault import Vault, VaultError
 
@@ -285,46 +289,10 @@ async def razorpay_webhook(
     return Response(content='{"status": "success"}', media_type="application/json")
 
 
-# Placeholder for protocol parser endpoints (C1)
-# @app.post("/v1/envelopes/ap2")
-# async def parse_ap2_envelope(envelope: dict):
-#     pass
-
-
-# Placeholder for vault endpoints (C3)
-# @app.post("/v1/agents/register")
-# async def register_agent(agent_data: dict):
-#     pass
-
-
-# Placeholder for firewall endpoints (C4)
-# @app.post("/v1/sanitize")
-# async def sanitize_payload(payload: dict):
-#     pass
-
-
-# Placeholder for policy/guardrails endpoints (C5)
-# @app.post("/v1/guardrails/check")
-# async def check_guardrails(data: dict):
-#     pass
-
-
-# Placeholder for catalog endpoints (C5)
-# @app.get("/v1/merchants/{merchant_id}/catalog")
-# async def get_catalog(merchant_id: str):
-#     pass
-
-
-# Placeholder for money action endpoints (C6)
-# @app.post("/v1/payments/create")
-# async def create_payment(payment_data: dict):
-#     pass
-
-
-# Placeholder for audit endpoints (C7)
-# @app.get("/v1/audit")
-# async def get_audit_log():
-#     pass
+app.include_router(catalog_routes.router, prefix="/v1")
+app.include_router(mandate_routes.router, prefix="/v1")
+app.include_router(checkout_routes.router, prefix="/v1")
+app.include_router(audit_routes.router, prefix="/v1")
 
 
 # Mount MCP if enabled
