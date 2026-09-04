@@ -124,3 +124,17 @@ class AuditLogger:
                 return False
             expected_prev = row.entry_hash
         return True
+
+    async def get_chain(self, mandate_id: str) -> list[AuditRow]:
+        """Return Audit rows for one Mandate, oldest first.
+
+        Does not verify the global chain; use verify_chain() for that.
+        """
+        await self._ensure_schema_once()
+        async with AsyncSession(self.engine) as session:
+            stmt = (
+                select(AuditRow)
+                .where(AuditRow.mandate_id == mandate_id)
+                .order_by(AuditRow.timestamp.asc(), AuditRow.entry_id.asc())
+            )
+            return list((await session.exec(stmt)).all())

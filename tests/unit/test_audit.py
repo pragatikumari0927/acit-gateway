@@ -67,3 +67,17 @@ async def test_audit_hash_chain_tamper_detected(tmp_path):
         await session.commit()
 
     assert await audit.verify_chain() is False
+
+
+@pytest.mark.asyncio
+async def test_audit_get_chain_filters_by_mandate(tmp_path):
+    from src.services.audit import AuditLogger
+
+    db = tmp_path / "a4.db"
+    audit = AuditLogger(db)
+    await audit.log_entry({"action": "a", "outcome": "ok", "mandate_id": "m-a"})
+    await audit.log_entry({"action": "b", "outcome": "ok", "mandate_id": "m-b"})
+    await audit.log_entry({"action": "c", "outcome": "refusal", "mandate_id": "m-a"})
+    chain = await audit.get_chain("m-a")
+    assert [row.action for row in chain] == ["a", "c"]
+    assert all(row.mandate_id == "m-a" for row in chain)

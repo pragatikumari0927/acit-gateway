@@ -97,6 +97,15 @@ class Vault:
             raise VaultError("invalid_signature")
         return claims
 
+    async def get_mandate(self, mandate_id: str) -> Mandate | None:
+        """Return the stored Mandate payload, or None if missing."""
+        await self._ensure_schema_once()
+        async with AsyncSession(self.engine) as session:
+            row = await session.get(MandateRow, mandate_id)
+        if row is None:
+            return None
+        return Mandate.model_validate_json(row.payload)
+
     async def validate_mandate(self, mandate_id: str) -> bool:
         await self._ensure_schema_once()
         async with AsyncSession(self.engine) as session:
