@@ -163,4 +163,4 @@ Not an official Razorpay product.
 
 Test-mode keys only. Internal freeze: 4 September 2026.
 
-> Agent setup (Cursor / Grok / Qwen): see [docs/AGENT-SETUP.md](docs/AGENT-SETUP.md)
+> Agent setup (Cursor / Grok / Qwen): see [docs/AGENT-SETUP.md](docs/AGENT-SETUP.md). Diagnosis: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md). Judgment when rules are silent: [docs/SOUL.md](docs/SOUL.md).

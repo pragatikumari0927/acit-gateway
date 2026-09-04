@@ -8,3 +8,5 @@ Workflow: plan -> test -> implement -> review -> verify -> remember.
 - Standards: `.cursor/rules/500-*.mdc` (Cursor) and `.agents/rules/ecc/` (any agent, on demand).
 - Never commit secrets; all config via env vars.
 <!-- ECC:END -->
+
+Diagnosis: `docs/TROUBLESHOOTING.md`. Covenant: `docs/SOUL.md`.

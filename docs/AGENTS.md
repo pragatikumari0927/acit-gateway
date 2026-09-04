@@ -1,10 +1,14 @@
 # ACIT Gateway — agent instructions
 
+> **Stale:** this file predates `run_execute`. Runtime `src/` and `tests/` are not empty stubs. Live pipeline: Firewall → parsed Mandate → Guardrails → Vault → Money action → Audit in `src/services/checkout.py` (`run_execute`); status in `docs/MEMORY.md`. Diagnosis: [TROUBLESHOOTING.md](TROUBLESHOOTING.md). Covenant: [SOUL.md](SOUL.md).
+
 Inbound test-mode bridge: an Agent presents a Protocol envelope; the Gateway verifies identity and Mandate bounds, sanitizes IDPI, enforces Merchant Guardrails, then executes a Razorpay test-mode Money action or a Refusal, and writes an Audit event. Tracks: 01 (agentic commerce) primary, 02 (defense-only IDPI) secondary, 05 (infra) tertiary.
 
 ## Read first
 
 - Language: `CONTEXT.md` (do not invent synonyms; `InternalMandate` is an alias of `Mandate`)
+- Diagnosis: `TROUBLESHOOTING.md`
+- Covenant: `SOUL.md`
 - Scope: `PRD.md`
 - Seams: `ARCHITECTURE.md`
 - Decisions: `adr/`
