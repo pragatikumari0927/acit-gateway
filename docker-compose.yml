@@ -1,0 +1,44 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: acit-gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - RAZORPAY_KEY_ID=${RAZORPAY_KEY_ID}
+      - RAZORPAY_KEY_SECRET=${RAZORPAY_KEY_SECRET}
+      - RAZORPAY_WEBHOOK_SECRET=${RAZORPAY_WEBHOOK_SECRET}
+      - JWT_SECRET=${JWT_SECRET}
+      - API_KEY=${API_KEY}
+      - DATABASE_URL=sqlite:///./data/acit.db
+      - CHAOS_ENABLED=${CHAOS_ENABLED:-true}
+      - CHAOS_FAILURE_RATE=${CHAOS_FAILURE_RATE:-0.05}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - MCP_ENABLED=${MCP_ENABLED:-false}
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Optional: SQLite inspection tool
+  sqlite-utils:
+    image: python:3.11-slim
+    container_name: acit-sqlite-utils
+    entrypoint: ["sqlite-utils"]
+    volumes:
+      - ./data:/data
+    profiles:
+      - tools
+
+networks:
+  default:
+    name: acit-network

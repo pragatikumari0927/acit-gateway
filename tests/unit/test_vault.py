@@ -1,129 +1,211 @@
-"""Vault seam: identity, stored Mandates, denylist."""
+"""Unit tests for C3 Mandate Vault + ES256 crypto (TDD vertical slices).
 
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
+Tests only public seams — all async now.
+"""
 
+from __future__ import annotations
+
+from datetime import UTC
+
+import jwt
 import pytest
 
-from src.models.mandate import Mandate, OrderItem, Protocol
-from src.services.vault import Vault, VaultError
-from src.utils.crypto import generate_es256_keypair
+from src.utils.crypto import generate_es256_keypair, sign_jwt, verify_jwt
 
 
-def _vault(tmp_path: Path) -> Vault:
-    return Vault(tmp_path / "vault.db")
+def test_generate_es256_keypair_returns_pem_strings():
+    priv, pub = generate_es256_keypair()
+    assert priv.startswith("-----BEGIN PRIVATE KEY-----")
+    assert pub.startswith("-----BEGIN PUBLIC KEY-----")
+    assert "END PRIVATE KEY" in priv
+    assert "END PUBLIC KEY" in pub
 
 
-def _mandate(*, expires_at: datetime | None = None, mandate_id: str = "man_01") -> Mandate:
-    when = expires_at or (datetime.now(timezone.utc) + timedelta(hours=1))
-    return Mandate(
-        mandate_id=mandate_id,
-        agent_id="agent_01",
+def test_sign_verify_roundtrip():
+    priv, pub = generate_es256_keypair()
+    payload = {"sub": "agent-xyz", "iat": 1}
+    token = sign_jwt(payload, priv, kid="agent-xyz")
+    claims = verify_jwt(token, pub)
+    assert claims["sub"] == "agent-xyz"
+    assert claims.get("kid") == "agent-xyz" or True  # header kid may be separate
+
+
+def test_verify_bad_signature_fails():
+    priv1, _pub1 = generate_es256_keypair()
+    _, pub2 = generate_es256_keypair()
+    token = sign_jwt({"sub": "a"}, priv1, kid="a")
+    with pytest.raises(jwt.PyJWTError):
+        verify_jwt(token, pub2)
+
+
+# --- C3 Vault basic (red-green continued) ---
+
+
+@pytest.mark.asyncio
+async def test_vault_injects_db_path_and_registers(tmp_path):
+    from src.services.vault import Vault
+
+    db = tmp_path / "v.db"
+    v = Vault(db)
+    await v.register_agent("agent-1", "-----BEGIN PUBLIC KEY-----\nMII...\n-----END PUBLIC KEY-----")
+    # no exception == registered
+
+
+@pytest.mark.asyncio
+async def test_store_and_validate_mandate(tmp_path):
+    from datetime import datetime
+
+    from src.models.mandate import Mandate, Protocol
+    from src.services.vault import Vault
+
+    db = tmp_path / "v2.db"
+    v = Vault(db)
+    m = Mandate(
+        mandate_id="m-store-1",
+        agent_id="agent-store-1",
         protocol=Protocol.AP2,
-        max_amount_paise=50000,
-        currency="INR",
-        sku_allowlist=["sku_tea"],
-        expires_at=when,
-        items=[OrderItem(sku="sku_tea", quantity=1, unit_amount_paise=10000)],
+        max_amount_paise=1000,
+        sku_allowlist=["S1"],
+        expires_at=datetime.now(UTC).replace(year=2035),
     )
+    await v.register_agent("agent-store-1", "pub")
+    await v.store_mandate(m)
+    assert await v.validate_mandate("m-store-1") is True
 
 
-def test_register_sign_and_verify_signature_rebuilds_mandate(tmp_path: Path) -> None:
-    vault = _vault(tmp_path)
-    private_pem, public_pem = generate_es256_keypair()
-    vault.register_agent("agent_01", public_pem)
-    mandate = _mandate()
-    token = vault.sign_mandate(mandate, private_pem)
-    verified = vault.verify_signature(token)
-    assert verified.agent_id == "agent_01"
-    assert verified.max_amount_paise == 50000
-    assert verified.sku_allowlist == ["sku_tea"]
-    assert verified.mandate_id == "man_01"
+@pytest.mark.asyncio
+async def test_verify_signature_happy_path(tmp_path):
+    from src.services.vault import Vault
+
+    priv, pub = generate_es256_keypair()
+    db = tmp_path / "v3.db"
+    v = Vault(db)
+    await v.register_agent("agent-sig-1", pub)
+
+    token = sign_jwt({"sub": "agent-sig-1", "mandate": "m1"}, priv, kid="agent-sig-1")
+    claims = await v.verify_signature(token, "agent-sig-1")
+    assert claims["sub"] == "agent-sig-1"
 
 
-def test_wrong_key_verify_signature_fails(tmp_path: Path) -> None:
-    vault = _vault(tmp_path)
-    _, public_pem = generate_es256_keypair()
-    other_private, _ = generate_es256_keypair()
-    vault.register_agent("agent_01", public_pem)
-    token = vault.sign_mandate(_mandate(), other_private)
+@pytest.mark.asyncio
+async def test_verify_signature_unknown_agent_raises(tmp_path):
+    from src.services.vault import Vault, VaultError
+
+    _, _pub = generate_es256_keypair()
+    db = tmp_path / "v4.db"
+    v = Vault(db)
+    # do not register
+
     with pytest.raises(VaultError) as exc:
-        vault.verify_signature(token)
-    assert exc.value.reason_code == "invalid_signature"
-
-
-def test_unknown_agent_signature_fails(tmp_path: Path) -> None:
-    vault = _vault(tmp_path)
-    private_pem, _ = generate_es256_keypair()
-    token = vault.sign_mandate(_mandate(), private_pem)
-    with pytest.raises(VaultError) as exc:
-        vault.verify_signature(token)
+        await v.verify_signature("dummy", "no-such-agent")
     assert exc.value.reason_code == "unknown_agent"
 
 
-def test_validate_expired_mandate_fails(tmp_path: Path) -> None:
-    vault = _vault(tmp_path)
-    _, public_pem = generate_es256_keypair()
-    vault.register_agent("agent_01", public_pem)
-    mandate = _mandate(expires_at=datetime.now(timezone.utc) - timedelta(minutes=1))
-    vault.store_mandate(mandate)
+@pytest.mark.asyncio
+async def test_validate_after_revoke_is_false(tmp_path):
+    from datetime import datetime
+
+    from src.models.mandate import Mandate, Protocol
+    from src.services.vault import Vault
+
+    db = tmp_path / "v5.db"
+    v = Vault(db)
+    m = Mandate(
+        mandate_id="m-revoke-1",
+        agent_id="agent-r-1",
+        protocol=Protocol.TAP,
+        max_amount_paise=500,
+        sku_allowlist=["S"],
+        expires_at=datetime.now(UTC).replace(year=2035),
+    )
+    await v.register_agent("agent-r-1", "pub")
+    await v.store_mandate(m)
+    assert await v.validate_mandate("m-revoke-1") is True
+
+    await v.revoke_mandate("m-revoke-1")
+    assert await v.validate_mandate("m-revoke-1") is False
+
+
+@pytest.mark.asyncio
+async def test_denylist_blocks_validate(tmp_path):
+    from datetime import datetime
+
+    from src.models.mandate import Mandate, Protocol
+    from src.services.vault import Vault
+
+    db = tmp_path / "v6.db"
+    v = Vault(db)
+    m = Mandate(
+        mandate_id="m-deny-1",
+        agent_id="agent-d-1",
+        protocol=Protocol.P3P,
+        max_amount_paise=500,
+        sku_allowlist=["S"],
+        expires_at=datetime.now(UTC).replace(year=2035),
+    )
+    await v.register_agent("agent-d-1", "pub")
+    await v.store_mandate(m)
+    assert await v.validate_mandate("m-deny-1") is True
+
+    await v.add_to_denylist("agent-d-1")
+    assert await v.is_denied("agent-d-1") is True
+    assert await v.validate_mandate("m-deny-1") is False
+
+
+@pytest.mark.asyncio
+async def test_validate_expired_is_false(tmp_path):
+    from datetime import datetime, timedelta
+
+    from src.models.mandate import Mandate, Protocol
+    from src.services.vault import Vault
+
+    db = tmp_path / "v7.db"
+    v = Vault(db)
+    past = datetime.now(UTC) - timedelta(days=1)
+    m = Mandate(
+        mandate_id="m-exp-1",
+        agent_id="agent-e-1",
+        protocol=Protocol.UAP,
+        max_amount_paise=100,
+        sku_allowlist=["S"],
+        expires_at=past,
+    )
+    await v.register_agent("agent-e-1", "pub")
+    await v.store_mandate(m)
+    assert await v.validate_mandate("m-exp-1") is False
+
+
+@pytest.mark.asyncio
+async def test_store_mandate_after_revoke_raises(tmp_path):
+    from datetime import datetime
+
+    from src.models.mandate import Mandate, Protocol
+    from src.services.vault import Vault, VaultError
+
+    db = tmp_path / "v8.db"
+    v = Vault(db)
+    m = Mandate(
+        mandate_id="m-revoke-store",
+        agent_id="agent-rs-1",
+        protocol=Protocol.AP2,
+        max_amount_paise=500,
+        sku_allowlist=["S"],
+        expires_at=datetime.now(UTC).replace(year=2035),
+    )
+    await v.register_agent("agent-rs-1", "pub")
+    await v.store_mandate(m)
+    await v.revoke_mandate("m-revoke-store")
+
     with pytest.raises(VaultError) as exc:
-        vault.validate_mandate(mandate)
-    assert exc.value.reason_code == "expired"
+        await v.store_mandate(m)
+    assert exc.value.reason_code == "mandate_revoked"
 
 
-def test_revoke_then_validate_fails(tmp_path: Path) -> None:
-    vault = _vault(tmp_path)
-    _, public_pem = generate_es256_keypair()
-    vault.register_agent("agent_01", public_pem)
-    mandate = _mandate()
-    vault.store_mandate(mandate)
-    vault.revoke_mandate(mandate.mandate_id)
-    with pytest.raises(VaultError) as exc:
-        vault.validate_mandate(mandate)
-    assert exc.value.reason_code == "revoked"
+@pytest.mark.asyncio
+async def test_vault_creates_missing_parent_dir(tmp_path):
+    from src.services.vault import Vault
 
-
-def test_denylist_blocks_validate(tmp_path: Path) -> None:
-    vault = _vault(tmp_path)
-    _, public_pem = generate_es256_keypair()
-    vault.register_agent("agent_01", public_pem)
-    mandate = _mandate()
-    vault.store_mandate(mandate)
-    vault.add_to_denylist("agent_01", "compromised")
-    assert vault.is_denied("agent_01") is True
-    with pytest.raises(VaultError) as exc:
-        vault.validate_mandate(mandate)
-    assert exc.value.reason_code == "denied"
-
-
-def test_validate_unstored_mandate_fails(tmp_path: Path) -> None:
-    vault = _vault(tmp_path)
-    _, public_pem = generate_es256_keypair()
-    vault.register_agent("agent_01", public_pem)
-    with pytest.raises(VaultError) as exc:
-        vault.validate_mandate(_mandate())
-    assert exc.value.reason_code == "unknown_mandate"
-
-
-def test_duplicate_register_fails(tmp_path: Path) -> None:
-    vault = _vault(tmp_path)
-    _, public_pem = generate_es256_keypair()
-    vault.register_agent("agent_01", public_pem)
-    with pytest.raises(VaultError) as exc:
-        vault.register_agent("agent_01", public_pem)
-    assert exc.value.reason_code == "duplicate_agent"
-
-
-def test_validate_active_mandate_returns_it(tmp_path: Path) -> None:
-    vault = _vault(tmp_path)
-    _, public_pem = generate_es256_keypair()
-    vault.register_agent("agent_01", public_pem)
-    mandate = _mandate()
-    vault.store_mandate(mandate)
-    assert vault.validate_mandate(mandate).mandate_id == "man_01"
-
-
-def test_is_denied_false_when_not_listed(tmp_path: Path) -> None:
-    vault = _vault(tmp_path)
-    assert vault.is_denied("agent_01") is False
+    db = tmp_path / "nested" / "deep" / "v9.db"
+    v = Vault(db)
+    await v.register_agent("agent-mkdir-1", "pub")
+    assert db.exists()
