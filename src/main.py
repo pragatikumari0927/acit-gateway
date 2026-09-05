@@ -272,10 +272,8 @@ async def razorpay_webhook(
     if not mandate_id:
         mandate_id = f"{event_type}_{payload.get('created_at', '')}"
     
-    if await store.seen(mandate_id):
+    if not await store.mark(mandate_id):
         return Response(content='{"status": "already_processed"}', media_type="application/json")
-
-    await store.mark(mandate_id)
     
     # TODO: Process webhook event (payment.captured, payment.failed, etc.)
     # This would typically update mandate status, trigger audit, etc.

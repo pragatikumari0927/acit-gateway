@@ -20,9 +20,9 @@ async def test_duplicate_mark_within_one_process_is_single_effect(tmp_path):
     event_id = "evt-one-process"
 
     assert await store.seen(event_id) is False
-    await store.mark(event_id)
+    assert await store.mark(event_id) is True
     assert await store.seen(event_id) is True
-    await store.mark(event_id)
+    assert await store.mark(event_id) is False
     assert await store.seen(event_id) is True
 
 
@@ -77,6 +77,9 @@ async def test_unique_constraint_race_second_insert_absorbed(tmp_path):
     )
     for result in results:
         assert not isinstance(result, BaseException)
+    claims = [result for result in results if isinstance(result, bool)]
+    assert claims.count(True) == 1
+    assert claims.count(False) == 1
 
     assert await worker_a.seen(event_id) is True
     assert await worker_b.seen(event_id) is True

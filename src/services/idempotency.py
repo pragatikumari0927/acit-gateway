@@ -31,13 +31,24 @@ class IdempotencyStore:
     async def _ensure_schema_once(self) -> None:
         if self._schema_initialized:
             return
-        try:
-            async with self.engine.begin() as conn:
-                await conn.run_sync(self._create_table)
-        except OperationalError as exc:
-            if "already exists" not in str(exc).lower():
-                raise
-        self._schema_initialized = True
+        last_error: Exception | None = None
+        for _ in range(5):
+            try:
+                async with self.engine.begin() as conn:
+                    await conn.run_sync(self._create_table)
+                self._schema_initialized = True
+                return
+            except OperationalError as exc:
+                last_error = exc
+                text = str(exc).lower()
+                if "already exists" in text:
+                    self._schema_initialized = True
+                    return
+                if "locked" not in text and "busy" not in text:
+                    raise
+                await asyncio.sleep(0.05)
+        if last_error is not None:
+            raise last_error
 
     async def seen(self, event_id: str) -> bool:
         """Return True if this event_id was already marked."""
@@ -46,8 +57,11 @@ class IdempotencyStore:
             row = await session.get(IdempotencyRow, event_id)
         return row is not None
 
-    async def mark(self, event_id: str) -> None:
-        """Record event_id. Unique-constraint and SQLite lock races are absorbed."""
+    async def mark(self, event_id: str) -> bool:
+        """Record event_id. True if newly claimed; False if already present.
+
+        Unique-constraint and SQLite lock races are absorbed, never raised as 500.
+        """
         await self._ensure_schema_once()
         now = datetime.now(UTC).isoformat()
         last_error: Exception | None = None
@@ -56,10 +70,10 @@ class IdempotencyStore:
                 session.add(IdempotencyRow(event_id=event_id, created_at=now))
                 try:
                     await session.commit()
-                    return
+                    return True
                 except IntegrityError:
                     await session.rollback()
-                    return
+                    return False
                 except OperationalError as exc:
                     await session.rollback()
                     last_error = exc
@@ -67,6 +81,8 @@ class IdempotencyStore:
                     if "locked" not in text and "busy" not in text:
                         raise
             if await self.seen(event_id):
-                return
+                return False
+            await asyncio.sleep(0.05)
         if last_error is not None:
             raise last_error
+        return False
