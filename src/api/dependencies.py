@@ -19,6 +19,7 @@ from src.services.catalog import CatalogService
 from src.services.chaos import ChaosInjector
 from src.services.executor import PaymentExecutor
 from src.services.firewall import PromptFirewall
+from src.services.idempotency import IdempotencyStore
 from src.services.policy import PolicyEngine
 from src.services.vault import Vault
 
@@ -80,6 +81,12 @@ def get_vault() -> Vault:
 def get_audit() -> AuditLogger:
     """Hash-chained Audit logger on the same SQLite file as Vault."""
     return AuditLogger(_db_path_from_url(settings.DATABASE_URL))
+
+
+@lru_cache
+def get_idempotency() -> IdempotencyStore:
+    """Webhook event-id store on the same SQLite file as Vault/Audit."""
+    return IdempotencyStore(_db_path_from_url(settings.DATABASE_URL))
 
 
 def require_audit_admin(
