@@ -7,6 +7,9 @@ import os
 import pytest
 from fastapi.testclient import TestClient
 
+from src.api import dependencies as deps
+from src.services.idempotency import IdempotencyStore
+
 
 def _make_webhook_payload(event: str = "payment.captured", payment_id: str = "pay_test123", order_id: str = "order_test456"):
     """Create a mock Razorpay webhook payload."""
@@ -53,11 +56,16 @@ os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 
 
 @pytest.fixture(autouse=True)
-def clear_idempotency_keys():
-    """Clear idempotency keys before each test."""
-    from src.main import _idempotency_keys
-    _idempotency_keys.clear()
-    yield
+def isolated_idempotency_store(tmp_path):
+    """File-backed store per test so webhook dedup does not share process state."""
+    from src.main import app
+
+    store = IdempotencyStore(tmp_path / "webhook-idem.db")
+    deps.get_idempotency.cache_clear()
+    app.dependency_overrides[deps.get_idempotency] = lambda: store
+    yield store
+    app.dependency_overrides.pop(deps.get_idempotency, None)
+    deps.get_idempotency.cache_clear()
 
 
 def test_webhook_valid_signature():

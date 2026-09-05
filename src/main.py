@@ -5,15 +5,17 @@ import hmac
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI, Header, HTTPException, Request, Response
+from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from src.api.dependencies import get_idempotency
 from src.api.routes import audit as audit_routes
 from src.api.routes import catalog as catalog_routes
 from src.api.routes import checkout as checkout_routes
 from src.api.routes import mandates as mandate_routes
 from src.config import settings
+from src.services.idempotency import IdempotencyStore
 
 
 @asynccontextmanager
@@ -56,10 +58,6 @@ def verify_razorpay_webhook_signature(body: str, signature: str, secret: str) ->
     
     # Use hmac.compare_digest for constant-time comparison (Python 3.3+)
     return hmac.compare_digest(generated_signature, signature)
-
-
-# --- Idempotency store (in-memory for demo, could be Redis/SQLite) ---
-_idempotency_keys: set[str] = set()
 
 
 # --- MCP Models ---
@@ -227,6 +225,7 @@ async def root():
 async def razorpay_webhook(
     request: Request,
     x_razorpay_signature: str | None = Header(None, alias="X-Razorpay-Signature"),
+    store: IdempotencyStore = Depends(get_idempotency),
 ) -> Response:
     """
     Handle Razorpay webhook events.
@@ -273,13 +272,10 @@ async def razorpay_webhook(
     if not mandate_id:
         mandate_id = f"{event_type}_{payload.get('created_at', '')}"
     
-    # Check idempotency
-    if mandate_id in _idempotency_keys:
-        # Already processed - return success (idempotent)
+    if await store.seen(mandate_id):
         return Response(content='{"status": "already_processed"}', media_type="application/json")
-    
-    # Mark as processed
-    _idempotency_keys.add(mandate_id)
+
+    await store.mark(mandate_id)
     
     # TODO: Process webhook event (payment.captured, payment.failed, etc.)
     # This would typically update mandate status, trigger audit, etc.
