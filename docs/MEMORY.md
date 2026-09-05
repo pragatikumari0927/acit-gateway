@@ -41,8 +41,8 @@ Ground truth at commit `5e7719b` (`main`). Working tree dirty (execute pipeline 
 - `providers.json`: mempalace + ai-memory + tavily enabled. `ai-memory` / `engram` CLIs not assumed present.
 
 ### Current status
-- Tests: 98 passed at `5e7719b` (supersedes 85 in the Phase 2.5 note above).
-- Open: Phase 5 (README/video/form), chaos retry/graceful-failure checkboxes, webhook body still TODO.
+- Tests: 104 passed (adds chaos graceful-path proof test: Refusal + audit + verify_chain). Supersedes 103.
+- Open: Phase 5 (README/video/form), Day 7 retry still unchecked, webhook body still TODO.
 - Next: submission polish, not start C5.
 
 ### Next steps
