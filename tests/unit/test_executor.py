@@ -2,18 +2,11 @@
 
 from __future__ import annotations
 
-import os
 import random
 from datetime import UTC, datetime
 from unittest.mock import MagicMock
 
 import pytest
-
-os.environ.setdefault("RAZORPAY_KEY_ID", "rzp_test_key")
-os.environ.setdefault("RAZORPAY_KEY_SECRET", "rzp_test_secret")
-os.environ.setdefault("RAZORPAY_WEBHOOK_SECRET", "test_webhook_secret")
-os.environ.setdefault("JWT_SECRET", "this_is_a_32_character_secret_xx")
-os.environ.setdefault("API_KEY", "test_api_key")
 
 from src.models.mandate import Mandate, OrderItem, Protocol
 from src.models.proposal import Proposal
