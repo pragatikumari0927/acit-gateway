@@ -183,21 +183,21 @@ Refusal is a `PolicyResult` / `CheckoutExecuteResult`: `allowed`, `reason_code`,
 
 **Proof:** [`src/main.py`](../src/main.py) L46–60, L244, L248–255. Secret field: [`src/config.py`](../src/config.py) L22.
 
-**Fix:** Set `RAZORPAY_WEBHOOK_SECRET` from the Razorpay **test** dashboard (never live). Sign the exact body. Handler after the check is a stub (`src/main.py` L286–288) — signature success ≠ Mandate update.
+**Fix:** Set `RAZORPAY_WEBHOOK_SECRET` from the Razorpay **test** dashboard (never live). Sign the exact body. After HMAC, the handler claims the event then applies Mandate + Audit (`src/services/webhook_apply.py`).
 
 **Verify:** Integration tests in `tests/integration/test_webhooks.py` (`test_webhook_valid_signature`, `test_webhook_invalid_signature`, `test_webhook_missing_signature`).
 
 ### Idempotency miss after restart or `--workers`
 
-**Symptom:** Same webhook accepted twice after process restart, or with multiple workers.
+**Symptom:** A previously claimed event returns `already_processed` but Mandate or Audit state is missing after an interrupted apply.
 
-**Cause:** Module-global in-memory set.
+**Cause:** The event was already claimed by `IdempotencyStore.mark()` (persist-then-apply). A 2xx `already_processed` is expected on redelivery.
 
-**Proof:** [`src/main.py`](../src/main.py) L64 `_idempotency_keys: set[str] = set()`; L279–284 membership + add.
+**Proof:** [`src/services/idempotency.py`](../src/services/idempotency.py); claim in [`src/main.py`](../src/main.py) before `apply_verified_event`.
 
-**Fix:** Safe envelope: **one worker**; after restart, reconcile in Razorpay test dashboard / Audit. An injectable store is planned, not present. Do not add Redis in a drive-by.
+**Fix:** If Mandate state is missing after a claimed event, inspect Audit for `webhook.apply` and reconcile from the Razorpay test dashboard. Do not add Redis in a drive-by.
 
-**Verify:** `Select-String -Path src/main.py -Pattern '_idempotency_keys'`.
+**Verify:** `Select-String -Path src/main.py -Pattern 'store.mark'`.
 
 ### `ProtocolParseError` becomes a Refusal
 

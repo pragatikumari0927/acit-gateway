@@ -2,6 +2,7 @@
 
 import hashlib
 import hmac
+import json
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -9,13 +10,16 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from src.api.dependencies import get_idempotency
+from src.api.dependencies import get_audit, get_idempotency, get_vault
 from src.api.routes import audit as audit_routes
 from src.api.routes import catalog as catalog_routes
 from src.api.routes import checkout as checkout_routes
 from src.api.routes import mandates as mandate_routes
 from src.config import settings
+from src.services.audit import AuditLogger
 from src.services.idempotency import IdempotencyStore
+from src.services.vault import Vault
+from src.services.webhook_apply import apply_verified_event, event_idempotency_key
 
 
 @asynccontextmanager
@@ -43,20 +47,11 @@ async def lifespan(app: FastAPI):
 # --- Razorpay Webhook Verification (native HMAC-SHA256) ---
 
 
-def verify_razorpay_webhook_signature(body: str, signature: str, secret: str) -> bool:
-    """
-    Verify Razorpay webhook signature using HMAC-SHA256.
-    
-    Implements the same logic as razorpay.utility.verify_webhook_signature
-    without requiring pkg_resources.
-    """
+def verify_razorpay_webhook_signature(body: str | bytes, signature: str, secret: str) -> bool:
+    """Verify Razorpay webhook HMAC-SHA256 over the raw request body."""
     key = secret.encode("utf-8")
-    msg = body.encode("utf-8")
-    
-    dig = hmac.new(key=key, msg=msg, digestmod=hashlib.sha256)
-    generated_signature = dig.hexdigest()
-    
-    # Use hmac.compare_digest for constant-time comparison (Python 3.3+)
+    msg = body if isinstance(body, bytes) else body.encode("utf-8")
+    generated_signature = hmac.new(key=key, msg=msg, digestmod=hashlib.sha256).hexdigest()
     return hmac.compare_digest(generated_signature, signature)
 
 
@@ -226,59 +221,52 @@ async def razorpay_webhook(
     request: Request,
     x_razorpay_signature: str | None = Header(None, alias="X-Razorpay-Signature"),
     store: IdempotencyStore = Depends(get_idempotency),
+    vault: Vault = Depends(get_vault),
+    audit: AuditLogger = Depends(get_audit),
 ) -> Response:
-    """
-    Handle Razorpay webhook events.
-    
-    Verifies webhook signature using HMAC-SHA256.
-    Implements idempotency using mandate_id from payload.
-    """
-    # Get raw body bytes
+    """Verify HMAC, claim the event, then apply Mandate + Audit (persist-then-apply)."""
     body = await request.body()
-    body_str = body.decode("utf-8")
-    
+
     if not x_razorpay_signature:
         raise HTTPException(status_code=400, detail="Missing X-Razorpay-Signature header")
-    
+
     try:
-        # Verify signature using native HMAC-SHA256
         if not verify_razorpay_webhook_signature(
-            body=body_str,
+            body=body,
             signature=x_razorpay_signature,
             secret=settings.RAZORPAY_WEBHOOK_SECRET,
         ):
             raise ValueError("Signature mismatch")
     except ValueError:
         raise HTTPException(status_code=401, detail="Invalid webhook signature")
-    
-    # Parse JSON payload
-    import json
-    payload = json.loads(body_str)
-    
-    # Extract mandate_id for idempotency (from entity or payment_link)
-    mandate_id = None
-    event_type = payload.get("event")
-    
-    # Razorpay webhook payload structure varies by event type
-    # Common structure: {"event": "payment.captured", "payload": {"payment": {"entity": {...}}}}
-    if "payload" in payload:
-        entity = payload["payload"].get("payment", {}).get("entity", {})
-        base_id = entity.get("order_id") or entity.get("id")
-        # Include event_type to differentiate events for the same payment/order
-        if base_id:
-            mandate_id = f"{event_type}:{base_id}"
-    
-    # Fallback to event type if no mandate_id found
-    if not mandate_id:
-        mandate_id = f"{event_type}_{payload.get('created_at', '')}"
-    
-    if not await store.mark(mandate_id):
-        return Response(content='{"status": "already_processed"}', media_type="application/json")
-    
-    # TODO: Process webhook event (payment.captured, payment.failed, etc.)
-    # This would typically update mandate status, trigger audit, etc.
-    
-    return Response(content='{"status": "success"}', media_type="application/json")
+
+    try:
+        payload = json.loads(body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return Response(
+            content='{"status": "error", "reason": "malformed_json"}',
+            media_type="application/json",
+        )
+    if not isinstance(payload, dict):
+        return Response(
+            content='{"status": "error", "reason": "malformed_json"}',
+            media_type="application/json",
+        )
+
+    event_id = event_idempotency_key(payload)
+    if not await store.mark(event_id):
+        return Response(
+            content='{"status": "already_processed"}',
+            media_type="application/json",
+        )
+
+    result = await apply_verified_event(
+        vault=vault,
+        audit=audit,
+        payload=payload,
+        event_id=event_id,
+    )
+    return Response(content=json.dumps(result), media_type="application/json")
 
 
 app.include_router(catalog_routes.router, prefix="/v1")
