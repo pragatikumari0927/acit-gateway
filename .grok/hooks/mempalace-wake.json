@@ -1,0 +1,16 @@
+{
+  "description": "Memory wake-up hook for grok agent (installed via ai-memory equivalent)",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "mempalace wake-up --wing acit-gateway",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
+}
