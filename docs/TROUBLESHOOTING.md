@@ -246,7 +246,7 @@ Refusal is a `PolicyResult` / `CheckoutExecuteResult`: `allowed`, `reason_code`,
 |---|---|---|---|
 | Junction farms | Path-not-found under `.claude/skills`, `data/skills` | Known (96 reparse points) | Scan `src`/`tests`; no bulk delete |
 | Stale `docs/AGENTS.md` | Claims empty `src/`/`tests/`; no `run_execute` | Known stale | Use `checkout.py` + `MEMORY.md` |
-| No CI workflow | No Actions runs | Deliberate (`5e7719b`) | Local pytest |
+| No CI workflow | No Actions runs | RESOLVED — `.github/workflows/test.yml` (SHA-pinned checkout + setup-uv, `uv sync --extra dev`, ruff, pytest) | Local `uv run pytest -q` still valid |
 | Python drift | venv 3.14.6 vs docs 3.11 | Known | Read `requires-python`; `.venv` still runs tests |
 | In-memory `_idempotency_keys` | Redelivery after restart / multi-worker | Known gap | Single worker; reconcile after restart |
 | Duplicate rule generations | Two files per topic | Known | Keep both; money-path wins |
