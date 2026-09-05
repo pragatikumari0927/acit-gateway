@@ -3,15 +3,20 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import pytest_asyncio
+from fastapi import FastAPI
 from httpx import AsyncClient
+from sqlalchemy import update
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.api import dependencies as deps
+from src.api.routes import audit as audit_routes
+from src.db.models import AuditRow
 from src.main import app
-from src.models.mandate import Mandate, OrderItem, Protocol
+from src.models.mandate import Mandate, Protocol
 from src.services.audit import AuditLogger
 from src.services.catalog import CatalogService
 from src.services.firewall import PromptFirewall
@@ -73,6 +78,17 @@ async def api(tmp_path):
             yield client, vault, audit, executor
     finally:
         app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture
+async def audit_api(tmp_path):
+    """Mount only the Audit router to prove its authorization is route-local."""
+    audit = AuditLogger(str(tmp_path / "audit-routes.db"))
+    audit_app = FastAPI()
+    audit_app.include_router(audit_routes.router, prefix="/v1")
+    audit_app.dependency_overrides[deps.get_audit] = lambda: audit
+    async with AsyncClient(app=audit_app, base_url="http://test") as client:
+        yield client, audit
 
 
 @pytest.mark.asyncio
@@ -253,12 +269,88 @@ async def test_checkout_execute_happy_path_with_matching_envelope(api):
 
 
 @pytest.mark.asyncio
-async def test_audit_mandate_and_export_stub(api):
+async def test_audit_mandate(api):
     client, *_ = api
     await client.post("/v1/checkout/propose", json=_proposal_body())
     listed = await client.get("/v1/audit/mandate/m-route-1")
     assert listed.status_code == 200
     assert len(listed.json()["entries"]) >= 1
-    exported = await client.get("/v1/audit/export")
-    assert exported.status_code == 200
-    assert exported.json()["status"] == "stub"
+
+
+@pytest.mark.asyncio
+async def test_audit_export_rejects_unauthorized_request(audit_api):
+    client, _ = audit_api
+
+    response = await client.get("/v1/audit/export")
+
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_audit_export_rejects_unrelated_scope(audit_api):
+    client, _ = audit_api
+
+    response = await client.get(
+        "/v1/audit/export",
+        headers={"X-API-Key": "test_api_key"},
+    )
+
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_audit_export_returns_verified_full_chain_for_audit_admin(audit_api):
+    client, audit = audit_api
+    await audit.log_entry(
+        {"action": "proposal.evaluate", "outcome": "allowed", "mandate_id": "m-a"}
+    )
+    await audit.log_entry(
+        {"action": "payment.create", "outcome": "ok", "mandate_id": "m-b"}
+    )
+
+    with patch.object(
+        audit, "verify_chain", AsyncMock(wraps=audit.verify_chain)
+    ) as verify_chain:
+        response = await client.get(
+            "/v1/audit/export",
+            headers={"X-API-Key": "test_audit_admin_api_key"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["chain_ok"] is True
+    assert [entry["mandate_id"] for entry in response.json()["entries"]] == [
+        "m-a",
+        "m-b",
+    ]
+    verify_chain.assert_awaited_once_with()
+
+
+@pytest.mark.asyncio
+async def test_audit_export_fails_closed_for_tampered_chain(audit_api):
+    client, audit = audit_api
+    entry_id = await audit.log_entry(
+        {"action": "payment.create", "outcome": "ok", "mandate_id": "m-a"}
+    )
+    async with AsyncSession(audit.engine) as session:
+        await session.exec(
+            update(AuditRow).where(AuditRow.entry_id == entry_id).values(outcome="tampered")
+        )
+        await session.commit()
+
+    response = await client.get(
+        "/v1/audit/export",
+        headers={"X-API-Key": "test_audit_admin_api_key"},
+    )
+
+    assert response.status_code == 409
+    assert response.json() == {"detail": "Audit chain verification failed"}
+
+
+@pytest.mark.asyncio
+async def test_audit_export_documents_route_local_api_key_security(audit_api):
+    client, _ = audit_api
+
+    response = await client.get("/openapi.json")
+    operation = response.json()["paths"]["/v1/audit/export"]["get"]
+
+    assert operation["security"] == [{"AuditAdminApiKey": []}]
