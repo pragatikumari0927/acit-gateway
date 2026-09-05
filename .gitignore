@@ -31,3 +31,9 @@ build/
 graphify-out/
 .graphify_*
 GRAPH_REPORT.html
+
+# machine-local mirrors (broken junctions on dev box); canonical = .agents/skills
+.claude/
+data/
+.coverage
+providers.json
