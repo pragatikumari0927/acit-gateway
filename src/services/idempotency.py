@@ -47,12 +47,26 @@ class IdempotencyStore:
         return row is not None
 
     async def mark(self, event_id: str) -> None:
-        """Record event_id. A unique-constraint race is absorbed, never raised."""
+        """Record event_id. Unique-constraint and SQLite lock races are absorbed."""
         await self._ensure_schema_once()
         now = datetime.now(UTC).isoformat()
-        async with AsyncSession(self.engine) as session:
-            session.add(IdempotencyRow(event_id=event_id, created_at=now))
-            try:
-                await session.commit()
-            except IntegrityError:
-                await session.rollback()
+        last_error: Exception | None = None
+        for _ in range(5):
+            async with AsyncSession(self.engine) as session:
+                session.add(IdempotencyRow(event_id=event_id, created_at=now))
+                try:
+                    await session.commit()
+                    return
+                except IntegrityError:
+                    await session.rollback()
+                    return
+                except OperationalError as exc:
+                    await session.rollback()
+                    last_error = exc
+                    text = str(exc).lower()
+                    if "locked" not in text and "busy" not in text:
+                        raise
+            if await self.seen(event_id):
+                return
+        if last_error is not None:
+            raise last_error
