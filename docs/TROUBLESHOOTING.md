@@ -251,6 +251,7 @@ Refusal is a `PolicyResult` / `CheckoutExecuteResult`: `allowed`, `reason_code`,
 | In-memory `_idempotency_keys` | Redelivery after restart / multi-worker | Known gap | Single worker; reconcile after restart |
 | Duplicate rule generations | Two files per topic | Known | Keep both; money-path wins |
 | `uv run pytest` unsatisfiable | `fastapi-users==12.1.0` METADATA `Requires-Dist: python-multipart==0.0.6` vs manifest `==0.0.32`; 0.0.6 is below CVE-2024-24762 (patched 0.0.7) | Known — fastapi-users modernization deferred | `.venv\Scripts\python.exe -m pytest -q` |
+| Graphify root leftovers | Working `.graphify_*` files land in repo root | Known — skill wrote CWD temps | Move them into `graphify-out/` after each run |
 
 ---
 

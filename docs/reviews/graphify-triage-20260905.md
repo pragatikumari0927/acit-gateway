@@ -1,6 +1,6 @@
 # Graphify report triage — 2026-09-05
 
-Triaged `graphify-out/GRAPH_REPORT.md` (last write 2026-09-05 09:19, corpus `src/` + `tests/`) against newest `src` commit `512f85d` (2026-09-05). Interactive twin: `graphify-out/graph.html`. Cross-checked against the Known-Broken registry in `docs/TROUBLESHOOTING.md`. Artifact hygiene: `graphify-out/`, `.graphify_*`, and `GRAPH_REPORT.html` appended to `.gitignore` (option a).
+Triaged `graphify-out/GRAPH_REPORT.md` (last write 2026-09-05 09:19, corpus `src/` + `tests/`) against newest `src` commit `512f85d` (2026-09-05). Interactive twin: `graphify-out/graph.html`. Cross-checked against the Known-Broken registry in `docs/TROUBLESHOOTING.md`. Artifact hygiene: `graphify-out/`, `.graphify_*`, and `graphify-out/GRAPH_REPORT.html` appended to `.gitignore` (option a).
 
 ## Summary
 
