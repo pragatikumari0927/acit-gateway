@@ -5,6 +5,7 @@ SQLite-backed on the same db_path seam as Vault/Audit. Stores event ids only.
 
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime
 from pathlib import Path
 
