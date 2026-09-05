@@ -97,7 +97,7 @@ Prompt 8 numbering. Design docs (ARCHITECTURE.md, design.md, CONTEXT.md) are in 
   - Depends on: all prior phases + C7/C8
 - [x] Day 8: Run complete test matrix (`pytest tests/unit tests/integration tests/chaos -q`); fix until all green
   - Depends on: test implementations
-- [ ] Day 8: One graceful failure path (chaos → Refusal + verified Audit chain)
+- [x] Day 8: One graceful failure path (chaos → Refusal + verified Audit chain)
   - Depends on: full Phase 4
 
 ### Phase 5: Documentation & Submission (Days 9‑10)
