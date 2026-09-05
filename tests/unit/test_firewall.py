@@ -8,13 +8,11 @@ from __future__ import annotations
 import json
 import logging
 
-import pytest
-
 from src.services.firewall import PromptFirewall
 
 
 def _load(name: str) -> dict:
-    path = f"tests/fixtures/idpi_payloads.json"
+    path = "tests/fixtures/idpi_payloads.json"
     with open(path, encoding="utf-8") as f:
         data = json.load(f)
     return data[name]

@@ -49,3 +49,8 @@ Ground truth at commit `5e7719b` (`main`). Working tree dirty (execute pipeline 
 - Complete chaos retry + one graceful failure (Refusal + verified Audit chain).
 - Phase 5 docs, demo video, Google Form submit.
 - Freeze 4 Sep 2026; submit 5 Sep 2026.
+
+### Backlog (out of current PR)
+- ruff==0.1.0 is old; Phase 0 only cleared existing F401/F541/E402 so CI can gate. Bump later.
+- Dirty local `uv.lock` (SQLModel restage) — do not mix into CI PR.
+- Dependabot volume — Phase 2.

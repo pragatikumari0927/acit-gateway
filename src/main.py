@@ -7,7 +7,6 @@ import hashlib
 
 from fastapi import FastAPI, Request, Header, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from src.api.routes import audit as audit_routes
@@ -15,14 +14,13 @@ from src.api.routes import catalog as catalog_routes
 from src.api.routes import checkout as checkout_routes
 from src.api.routes import mandates as mandate_routes
 from src.config import settings
-from src.services.vault import Vault, VaultError
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan events."""
     # Startup
-    print(f"Starting ACIT Gateway on port 8000")
+    print("Starting ACIT Gateway on port 8000")
     print(f"Database: {settings.DATABASE_URL}")
     print(f"Chaos enabled: {settings.CHAOS_ENABLED}")
     print(f"MCP enabled: {settings.MCP_ENABLED}")
