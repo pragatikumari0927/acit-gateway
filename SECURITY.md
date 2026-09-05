@@ -70,12 +70,12 @@ Local-tool issues ARE valid when untrusted repo content (skills, hooks, CI) can 
 
 All config comes from environment variables. `.env` is git-ignored. `.env.example` is the committed template (names only). Never print key material to chat or logs.
 
-Names in this repo: `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `JWT_SECRET`, `API_KEY`, `DATABASE_URL`, `CHAOS_ENABLED`, `CHAOS_FAILURE_RATE`, `MCP_ENABLED`, `LOG_LEVEL`.
+Names in this repo: `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `JWT_SECRET`, `API_KEY`, `AUDIT_ADMIN_API_KEY`, `DATABASE_URL`, `CHAOS_ENABLED`, `CHAOS_FAILURE_RATE`, `MCP_ENABLED`, `LOG_LEVEL`.
 
 Quick audit (names, not values):
 
 ```bash
-grep -nE 'RAZORPAY_KEY_ID|RAZORPAY_KEY_SECRET|RAZORPAY_WEBHOOK_SECRET|JWT_SECRET|API_KEY' -- .env.example src .github 2>/dev/null
+grep -nE 'RAZORPAY_KEY_ID|RAZORPAY_KEY_SECRET|RAZORPAY_WEBHOOK_SECRET|JWT_SECRET|API_KEY|AUDIT_ADMIN_API_KEY' -- .env.example src .github 2>/dev/null
 ```
 
 Razorpay key rotation: revoke or rotate in the Razorpay dashboard, issue new test-mode keys, update env. Do not rely on git revert alone.

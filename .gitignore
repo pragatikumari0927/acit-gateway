@@ -26,3 +26,8 @@ entities.json
 dist/
 build/
 .DS_Store
+
+# Graphify generated artifacts (regenerable)
+graphify-out/
+.graphify_*
+GRAPH_REPORT.html

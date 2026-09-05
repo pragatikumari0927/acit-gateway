@@ -26,6 +26,10 @@ class Settings(BaseSettings):
 
     # API key for service-to-service auth
     API_KEY: str = Field(..., description="Service-to-service API key")
+    AUDIT_ADMIN_API_KEY: str = Field(
+        ...,
+        description="Dedicated API key authorized for the audit:admin scope",
+    )
 
     # Database
     DATABASE_URL: str = Field(

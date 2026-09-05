@@ -136,6 +136,7 @@ FastAPI edge, not yet implemented. Two credentials:
 | Header | What it proves |
 | --- | --- |
 | `X-API-Key` | Merchant/operator may call this Gateway (shared test secret from `.env`) |
+| `X-API-Key` with `AUDIT_ADMIN_API_KEY` | Operator credential carrying the server-assigned `audit:admin` scope |
 | `Authorization: Bearer <jwt>` | **Agent** ES256 JWT (`kid`/`sub` = `agent_id`) on spend paths |
 
 Missing/wrong API key → **401**. Unknown `protocol` → **400**. Gate Refusal → **200** `{ "allowed": false, "reason_code": "..." }` (Refusal is a completed outcome).
@@ -147,6 +148,7 @@ Missing/wrong API key → **401**. Unknown `protocol` → **400**. Gate Refusal 
 | `POST` | `/v1/agents` | API key | `{ "agent_id", "public_key_pem" }` | `{ "agent_id" }` |
 | `POST` | `/v1/envelopes` | API key + JWT | `{ "protocol", "envelope", "proposal"? }` | see below |
 | `GET` | `/v1/audit` | API key | `?mandate_id=` | `{ "entries": AuditEntry[], "chain_ok": bool }` |
+| `GET` | `/v1/audit/export` | API key + `audit:admin` scope | — | `{ "entries": AuditEntry[], "chain_ok": true }` |
 
 ```python
 class EnvelopeRequest(BaseModel):

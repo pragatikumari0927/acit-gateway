@@ -122,6 +122,8 @@ All models are Pydantic v2. No untyped dicts stand in for Mandate.
 Credentials:
 
 - `X-API-Key`: Merchant / operator (from `.env`).
+- `X-API-Key` set to `AUDIT_ADMIN_API_KEY`: Operator credential carrying the server-assigned
+  `audit:admin` scope for full Audit export.
 - `Authorization: Bearer <jwt>`: Agent identity on spend paths.
 
 Error convention:
@@ -139,6 +141,7 @@ Endpoints (reference):
 | POST   | /v1/agents        | API key           | Register Agent public key            | `{ "agent_id": "..." }` |
 | POST   | /v1/envelopes     | API key + JWT     | Submit Protocol envelope + Proposal  | `{ "allowed": bool, "reason_code": str|null, "mandate_id": str|null, "payment": {...}|null, "validation": [...] }` |
 | GET    | /v1/audit         | API key           | Query Audit chain (optionally by mandate_id) | `{ "entries": AuditEntry[], "chain_ok": bool }` |
+| GET    | /v1/audit/export  | API key + `audit:admin` scope | Export the verified full Audit chain | `{ "entries": AuditEntry[], "chain_ok": true }` |
 
 See `design.md` for request/response shapes and `EnvelopeRequest` / `EnvelopeResponse`.
 

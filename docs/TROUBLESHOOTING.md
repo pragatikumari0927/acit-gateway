@@ -250,7 +250,8 @@ Refusal is a `PolicyResult` / `CheckoutExecuteResult`: `allowed`, `reason_code`,
 | Python drift | venv 3.14.6 vs docs 3.11 | Known | Read `requires-python`; `.venv` still runs tests |
 | In-memory `_idempotency_keys` | Redelivery after restart / multi-worker | Known gap | Single worker; reconcile after restart |
 | Duplicate rule generations | Two files per topic | Known | Keep both; money-path wins |
-| `uv run pytest` unsatisfiable | `fastapi-users==12.1.0` METADATA `Requires-Dist: python-multipart==0.0.6` vs manifest `==0.0.32`; 0.0.6 is below CVE-2024-24762 (patched 0.0.7) | Known — fastapi-users modernization deferred | `.venv\Scripts\python.exe -m pytest -q` |
+| `uv run pytest` unsatisfiable | `fastapi-users==12.1.0` METADATA `Requires-Dist: python-multipart==0.0.6` vs manifest `==0.0.32`; 0.0.6 is below CVE-2024-24762 (patched 0.0.7) | RESOLVED-BY-PIN (submission freeze): `python-multipart==0.0.6` matches fastapi-users' exact pin; `uv sync` restores. Known trade-off: CVE-2024-24762 ReDoS class in 0.0.6 — accepted for a test-mode gateway (DoS class only, no live keys); modernization (fastapi-users bump -> patched python-multipart) is a registered post-hackathon task. | `uv run pytest -q` |
+| Graphify root leftovers | Working `.graphify_*` files land in repo root | Known — skill wrote CWD temps | Move them into `graphify-out/` after each run |
 
 ---
 

@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import hmac
 from collections.abc import AsyncIterator
 from functools import lru_cache
 from pathlib import Path
 
-from fastapi import Depends
+from fastapi import Depends, HTTPException, Security, status
+from fastapi.security import APIKeyHeader
 from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -21,6 +23,16 @@ from src.services.policy import PolicyEngine
 from src.services.vault import Vault
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
+AUDIT_ADMIN_SCOPE = "audit:admin"
+_audit_admin_api_key = APIKeyHeader(
+    name="X-API-Key",
+    scheme_name="AuditAdminApiKey",
+    description=(
+        "Dedicated merchant/operator API key carrying the server-assigned "
+        "`audit:admin` scope."
+    ),
+    auto_error=False,
+)
 
 
 def _db_path_from_url(url: str) -> str:
@@ -68,6 +80,31 @@ def get_vault() -> Vault:
 def get_audit() -> AuditLogger:
     """Hash-chained Audit logger on the same SQLite file as Vault."""
     return AuditLogger(_db_path_from_url(settings.DATABASE_URL))
+
+
+def require_audit_admin(
+    api_key: str | None = Security(_audit_admin_api_key),
+) -> None:
+    """Authorize full Audit export for an operator with the audit-admin scope."""
+    if api_key is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or missing API key",
+            headers={"WWW-Authenticate": "ApiKey"},
+        )
+    is_audit_admin = hmac.compare_digest(api_key, settings.AUDIT_ADMIN_API_KEY)
+    is_operator = hmac.compare_digest(api_key, settings.API_KEY)
+    if not is_audit_admin and not is_operator:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or missing API key",
+            headers={"WWW-Authenticate": "ApiKey"},
+        )
+    if not is_audit_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Missing required scope: {AUDIT_ADMIN_SCOPE}",
+        )
 
 
 @lru_cache
