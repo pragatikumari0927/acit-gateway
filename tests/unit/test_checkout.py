@@ -26,27 +26,27 @@ def _future() -> datetime:
 
 
 def _mandate(**kwargs) -> Mandate:
-    defaults = dict(
-        mandate_id="m-co-1",
-        agent_id="agent-co-1",
-        protocol=Protocol.AP2,
-        max_amount_paise=50_000,
-        sku_allowlist=[SKU, "SKU-002"],
-        expires_at=_future(),
-    )
+    defaults = {
+        "mandate_id": "m-co-1",
+        "agent_id": "agent-co-1",
+        "protocol": Protocol.AP2,
+        "max_amount_paise": 50_000,
+        "sku_allowlist": [SKU, "SKU-002"],
+        "expires_at": _future(),
+    }
     defaults.update(kwargs)
     return Mandate(**defaults)
 
 
 def _proposal(**kwargs) -> Proposal:
-    defaults = dict(
-        mandate_id="m-co-1",
-        merchant_id="m_test",
-        items=[OrderItem(sku=SKU, quantity=1, unit_amount_paise=UNIT_PAISE)],
-        quoted_total_paise=UNIT_PAISE,
-        quoted_discount_paise=0,
-        copy=[],
-    )
+    defaults = {
+        "mandate_id": "m-co-1",
+        "merchant_id": "m_test",
+        "items": [OrderItem(sku=SKU, quantity=1, unit_amount_paise=UNIT_PAISE)],
+        "quoted_total_paise": UNIT_PAISE,
+        "quoted_discount_paise": 0,
+        "copy": [],
+    }
     defaults.update(kwargs)
     return Proposal(**defaults)
 

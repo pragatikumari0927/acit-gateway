@@ -52,5 +52,6 @@ Ground truth at commit `5e7719b` (`main`). Working tree dirty (execute pipeline 
 
 ### Backlog (out of current PR)
 - ruff==0.1.0 is old; Phase 0 only cleared existing F401/F541/E402 so CI can gate. Bump later.
+- FastAPI `Annotated[X, Depends()]` migration — B008 ignored in `[tool.ruff.lint]` until then.
 - Dirty local `uv.lock` (SQLModel restage) — do not mix into CI PR.
 - Dependabot volume — Phase 2.

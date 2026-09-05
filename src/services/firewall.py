@@ -7,7 +7,7 @@ sanitize(payload) -> (safe: bool, sanitized_or_none: dict | None, reason: str | 
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -58,9 +58,7 @@ def _contains_idpi(text: str) -> bool:
     t = text.lower()
     if "<!--" in t:
         return True
-    if any(p in t for p in _IDPI_PHRASES):
-        return True
-    return False
+    return bool(any(p in t for p in _IDPI_PHRASES))
 
 
 def _walk(obj: Any) -> bool:
@@ -94,7 +92,7 @@ def _sanitize(obj: Any) -> Any:
 class PromptFirewall:
     """Deterministic Prompt Firewall (C4). Static validation + pattern detection + sanitisation."""
 
-    def sanitize(self, payload: dict) -> tuple[bool, Optional[dict], Optional[str]]:
+    def sanitize(self, payload: dict) -> tuple[bool, dict | None, str | None]:
         if not isinstance(payload, dict):
             logger.warning("idpi_detected: non-dict payload")
             return False, None, "idpi_detected"

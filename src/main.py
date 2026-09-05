@@ -1,11 +1,11 @@
 """ACIT Gateway — FastAPI application entry point."""
 
+import hashlib
+import hmac
 from contextlib import asynccontextmanager
 from typing import Any
-import hmac
-import hashlib
 
-from fastapi import FastAPI, Request, Header, HTTPException, Response
+from fastapi import FastAPI, Header, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
