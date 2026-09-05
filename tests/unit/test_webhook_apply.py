@@ -28,3 +28,10 @@ def test_event_key_uses_event_and_order():
         }
     )
     assert key == "payment.captured:order_1"
+
+
+def test_event_key_tolerates_non_dict_payment():
+    key = event_idempotency_key(
+        {"event": "payment.captured", "payload": {"payment": "x"}, "created_at": 1}
+    )
+    assert key == "payment.captured_1"

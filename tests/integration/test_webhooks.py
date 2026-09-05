@@ -63,9 +63,9 @@ os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 
 
 def _future():
-    from datetime import UTC, datetime
+    from datetime import UTC, datetime, timedelta
 
-    return datetime.now(UTC).replace(year=2035)
+    return datetime.now(UTC) + timedelta(days=3650)
 
 
 def _mandate(*, mandate_id: str = "order_test456") -> Mandate:
@@ -353,6 +353,22 @@ def test_webhook_unknown_event_type_is_not_applied(isolated_webhook_services):
     assert stored is not None
     assert stored.payment_status is None
     assert asyncio.run(audit.get_chain("order_test456")) == []
+
+
+def test_webhook_non_dict_payment_is_not_applied():
+    """Nested non-dict payment is 2xx not_applied, never 500."""
+    from src.main import app
+
+    client = TestClient(app)
+    response = _post_signed(
+        client,
+        {"event": "payment.captured", "created_at": 1699999999, "payload": {"payment": "x"}},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "not_applied"
+    assert body["reason"] == "mandate_not_found"
 
 
 def test_webhook_unknown_mandate_is_not_applied(isolated_webhook_services):

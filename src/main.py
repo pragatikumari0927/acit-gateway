@@ -47,20 +47,11 @@ async def lifespan(app: FastAPI):
 # --- Razorpay Webhook Verification (native HMAC-SHA256) ---
 
 
-def verify_razorpay_webhook_signature(body: str, signature: str, secret: str) -> bool:
-    """
-    Verify Razorpay webhook signature using HMAC-SHA256.
-    
-    Implements the same logic as razorpay.utility.verify_webhook_signature
-    without requiring pkg_resources.
-    """
+def verify_razorpay_webhook_signature(body: str | bytes, signature: str, secret: str) -> bool:
+    """Verify Razorpay webhook HMAC-SHA256 over the raw request body."""
     key = secret.encode("utf-8")
-    msg = body.encode("utf-8")
-    
-    dig = hmac.new(key=key, msg=msg, digestmod=hashlib.sha256)
-    generated_signature = dig.hexdigest()
-    
-    # Use hmac.compare_digest for constant-time comparison (Python 3.3+)
+    msg = body if isinstance(body, bytes) else body.encode("utf-8")
+    generated_signature = hmac.new(key=key, msg=msg, digestmod=hashlib.sha256).hexdigest()
     return hmac.compare_digest(generated_signature, signature)
 
 
@@ -235,14 +226,13 @@ async def razorpay_webhook(
 ) -> Response:
     """Verify HMAC, claim the event, then apply Mandate + Audit (persist-then-apply)."""
     body = await request.body()
-    body_str = body.decode("utf-8")
 
     if not x_razorpay_signature:
         raise HTTPException(status_code=400, detail="Missing X-Razorpay-Signature header")
 
     try:
         if not verify_razorpay_webhook_signature(
-            body=body_str,
+            body=body,
             signature=x_razorpay_signature,
             secret=settings.RAZORPAY_WEBHOOK_SECRET,
         ):
@@ -251,8 +241,8 @@ async def razorpay_webhook(
         raise HTTPException(status_code=401, detail="Invalid webhook signature")
 
     try:
-        payload = json.loads(body_str)
-    except json.JSONDecodeError:
+        payload = json.loads(body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
         return Response(
             content='{"status": "error", "reason": "malformed_json"}',
             media_type="application/json",

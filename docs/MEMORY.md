@@ -41,8 +41,9 @@ Ground truth at commit `5e7719b` (`main`). Working tree dirty (execute pipeline 
 - `providers.json`: mempalace + ai-memory + tavily enabled. `ai-memory` / `engram` CLIs not assumed present.
 
 ### Current status
-- Tests: **119 passed**. H2 durable idempotency is on `main` (`d3229a5`). H1 webhook apply: HMAC → claim → Mandate `payment_status` + Audit `webhook.apply` (`src/services/webhook_apply.py`). No new DB column.
+- Tests: **121 passed**. H2 durable idempotency is on `main` (`d3229a5`). H1 webhook apply: HMAC over raw bytes → claim → Mandate `payment_status` + Audit `webhook.apply` (`src/services/webhook_apply.py`). No new DB column.
 - Open: H3 MCP catalog through CatalogService, H8 bounded retry, compose path, Phase 5 (README/video/form).
+- Parked from H1 review: apply-then-complete transaction (contradicts persist-then-apply), `X-Razorpay-Event-Id` key change, Audit on every not-applied path, out-of-order timestamp compare.
 - Next: one PR at a time; stop after each merge.
 
 ### Next steps

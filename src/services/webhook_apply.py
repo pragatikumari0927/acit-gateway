@@ -18,10 +18,13 @@ logger = logging.getLogger(__name__)
 APPLYABLE_EVENTS = frozenset({"payment.captured", "payment.failed"})
 
 
+def _as_dict(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
 def _payment_entity(payload: dict[str, Any]) -> dict[str, Any]:
-    payment = (payload.get("payload") or {}).get("payment") or {}
-    entity = payment.get("entity") or {}
-    return entity if isinstance(entity, dict) else {}
+    payment = _as_dict(_as_dict(payload.get("payload")).get("payment"))
+    return _as_dict(payment.get("entity"))
 
 
 def event_idempotency_key(payload: dict[str, Any]) -> str:

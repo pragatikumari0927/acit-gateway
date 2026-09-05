@@ -189,7 +189,7 @@ Refusal is a `PolicyResult` / `CheckoutExecuteResult`: `allowed`, `reason_code`,
 
 ### Idempotency miss after restart or `--workers`
 
-**Symptom:** Same webhook accepted twice after process restart, or with multiple workers.
+**Symptom:** A previously claimed event returns `already_processed` but Mandate or Audit state is missing after an interrupted apply.
 
 **Cause:** The event was already claimed by `IdempotencyStore.mark()` (persist-then-apply). A 2xx `already_processed` is expected on redelivery.
 
