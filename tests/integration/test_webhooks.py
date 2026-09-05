@@ -33,8 +33,8 @@ def _make_webhook_payload(event: str = "payment.captured", payment_id: str = "pa
 
 def _sign_payload(body: str, secret: str) -> str:
     """Generate HMAC-SHA256 signature for testing."""
-    import hmac
     import hashlib
+    import hmac
     return hmac.new(
         key=secret.encode("utf-8"),
         msg=body.encode("utf-8"),

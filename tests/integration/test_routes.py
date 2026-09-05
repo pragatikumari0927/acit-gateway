@@ -28,14 +28,14 @@ UNIT_PAISE = 19900
 
 
 def _mandate(**kwargs) -> Mandate:
-    defaults = dict(
-        mandate_id="m-route-1",
-        agent_id="agent-route-1",
-        protocol=Protocol.AP2,
-        max_amount_paise=50_000,
-        sku_allowlist=[SKU, "SKU-002"],
-        expires_at=datetime.now(UTC).replace(year=2035),
-    )
+    defaults = {
+        "mandate_id": "m-route-1",
+        "agent_id": "agent-route-1",
+        "protocol": Protocol.AP2,
+        "max_amount_paise": 50_000,
+        "sku_allowlist": [SKU, "SKU-002"],
+        "expires_at": datetime.now(UTC).replace(year=2035),
+    }
     defaults.update(kwargs)
     return Mandate(**defaults)
 

@@ -97,7 +97,7 @@ async def run_execute(
 
     try:
         payment = await asyncio.to_thread(executor.execute, mandate, proposal)
-    except Exception:
+    except Exception:  # noqa: BLE001 — fail-closed: any executor fault is a Refusal, never a 500
         await _audit_refusal(audit, proposal, "executor_failure", agent_id=mandate.agent_id)
         return _refuse(proposal.mandate_id, "executor_failure")
 
