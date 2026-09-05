@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     )
 
     # Chaos engineering
-    CHAOS_ENABLED: bool = Field(default=True, description="Enable chaos injection")
+    CHAOS_ENABLED: bool = Field(default=False, description="Enable chaos injection")
     CHAOS_FAILURE_RATE: float = Field(
         default=0.05, ge=0.0, le=1.0, description="Chaos failure rate (0-1)"
     )
