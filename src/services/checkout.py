@@ -9,6 +9,7 @@ import asyncio
 import json
 from typing import Any
 
+from src.models.mandate import Mandate
 from src.models.proposal import CheckoutExecuteResult, Proposal
 from src.services.audit import AuditLogger
 from src.services.executor import PaymentExecutor
@@ -16,6 +17,50 @@ from src.services.firewall import PromptFirewall
 from src.services.policy import PolicyEngine
 from src.services.protocol_parser import ProtocolParseError, parse_envelope
 from src.services.vault import Vault
+
+RETRY_BACKOFF_SECONDS = 0.05
+
+
+def _is_transient(exc: BaseException) -> bool:
+    """True for faults worth one more attempt: timeouts, dropped connections, 5xx.
+
+    Razorpay's SDK cannot be imported in this environment, so the HTTP shape is
+    read off the exception rather than matched against its error classes.
+    """
+    if isinstance(exc, TimeoutError | ConnectionError):
+        return True
+    status = getattr(exc, "status_code", None)
+    return isinstance(status, int) and 500 <= status < 600
+
+
+class _RetriedExecutorError(Exception):
+    """Marks a fault that survived the one permitted retry."""
+
+
+async def _execute_once_with_retry(
+    executor: PaymentExecutor,
+    mandate: Mandate,
+    proposal: Proposal,
+    backoff_seconds: float,
+) -> tuple[dict[str, Any], bool]:
+    """Run the Money action, retrying a transient fault exactly once.
+
+    Returns the payment and whether a retry was needed. A first attempt that
+    reaches Razorpay but loses its response leaves an order behind that the
+    retry cannot see, so every retried attempt is recorded in Audit for
+    reconciliation.
+    """
+    try:
+        return await asyncio.to_thread(executor.execute, mandate, proposal), False
+    except Exception as exc:
+        if not _is_transient(exc):
+            raise
+        if backoff_seconds > 0:
+            await asyncio.sleep(backoff_seconds)
+        try:
+            return await asyncio.to_thread(executor.execute, mandate, proposal), True
+        except Exception as retry_exc:
+            raise _RetriedExecutorError(str(retry_exc)) from retry_exc
 
 
 def _refuse(mandate_id: str, reason_code: str) -> CheckoutExecuteResult:
@@ -33,14 +78,18 @@ async def _audit_refusal(
     proposal: Proposal,
     reason_code: str,
     agent_id: str | None = None,
+    retried: bool = False,
 ) -> None:
+    metadata: dict[str, Any] = {"reason_code": reason_code}
+    if retried:
+        metadata["retried"] = True
     await audit.log_entry(
         {
             "action": "checkout.execute",
             "outcome": "refusal",
             "agent_id": agent_id,
             "mandate_id": proposal.mandate_id,
-            "metadata_json": json.dumps({"reason_code": reason_code}),
+            "metadata_json": json.dumps(metadata),
         }
     )
 
@@ -55,6 +104,7 @@ async def run_execute(
     policy: PolicyEngine,
     executor: PaymentExecutor,
     audit: AuditLogger,
+    retry_backoff_seconds: float = RETRY_BACKOFF_SECONDS,
 ) -> CheckoutExecuteResult:
     """Gate a Money action. Fail closed: any Refusal writes Audit and skips Razorpay."""
     parsed_mandate_id = proposal.mandate_id
@@ -96,9 +146,17 @@ async def run_execute(
         return _refuse(proposal.mandate_id, "mandate_invalid")
 
     try:
-        payment = await asyncio.to_thread(executor.execute, mandate, proposal)
-    except Exception:  # noqa: BLE001 — fail-closed: any executor fault is a Refusal, never a 500
-        await _audit_refusal(audit, proposal, "executor_failure", agent_id=mandate.agent_id)
+        payment, retried = await _execute_once_with_retry(
+            executor, mandate, proposal, retry_backoff_seconds
+        )
+    except Exception as exc:  # noqa: BLE001 — fail-closed: any executor fault is a Refusal, never a 500
+        await _audit_refusal(
+            audit,
+            proposal,
+            "executor_failure",
+            agent_id=mandate.agent_id,
+            retried=isinstance(exc, _RetriedExecutorError),
+        )
         return _refuse(proposal.mandate_id, "executor_failure")
 
     await audit.log_entry(
@@ -107,6 +165,7 @@ async def run_execute(
             "outcome": "ok",
             "mandate_id": proposal.mandate_id,
             "agent_id": mandate.agent_id,
+            "metadata_json": json.dumps({"retried": True}) if retried else None,
         }
     )
     return CheckoutExecuteResult(

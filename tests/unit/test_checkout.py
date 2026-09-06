@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
 from unittest.mock import MagicMock
 
@@ -78,7 +79,7 @@ async def ctx(tmp_path):
     return vault, audit, policy, firewall, executor
 
 
-async def _run(ctx, proposal=None, protocol=None, envelope=None):
+async def _run(ctx, proposal=None, protocol=None, envelope=None, retry_backoff_seconds=0.0):
     vault, audit, policy, firewall, executor = ctx
     return await run_execute(
         proposal or _proposal(),
@@ -89,7 +90,16 @@ async def _run(ctx, proposal=None, protocol=None, envelope=None):
         policy=policy,
         executor=executor,
         audit=audit,
+        retry_backoff_seconds=retry_backoff_seconds,
     )
+
+
+class _HttpError(Exception):
+    """Razorpay-shaped failure carrying an HTTP status."""
+
+    def __init__(self, status_code: int) -> None:
+        super().__init__(f"razorpay {status_code}")
+        self.status_code = status_code
 
 
 @pytest.mark.asyncio
@@ -177,3 +187,97 @@ async def test_run_execute_executor_failure_is_refusal(ctx):
     assert result.reason_code == "executor_failure"
     assert result.violations == ["executor_failure"]
     assert result.payment is None
+
+
+@pytest.mark.asyncio
+async def test_run_execute_retries_once_after_transient_timeout(ctx):
+    """A single injected timeout is recovered by the retry, not refused."""
+    payment = {"id": "order_retry", "amount": UNIT_PAISE}
+    ctx[4].execute.side_effect = [TimeoutError("chaos"), payment]
+
+    result = await _run(ctx)
+
+    assert result.allowed is True
+    assert result.reason_code is None
+    assert result.payment == payment
+    assert ctx[4].execute.call_count == 2
+    chain = await ctx[1].get_chain("m-co-1")
+    assert [row.outcome for row in chain] == ["ok"]
+    # A lost first response can leave an orphan order; the chain must show it.
+    assert json.loads(chain[0].metadata_json) == {"retried": True}
+    assert await ctx[1].verify_chain() is True
+
+
+@pytest.mark.asyncio
+async def test_run_execute_retry_is_bounded_to_one_extra_attempt(ctx):
+    """Two timeouts still refuse; the executor is never called a third time."""
+    ctx[4].execute.side_effect = TimeoutError("chaos")
+
+    result = await _run(ctx)
+
+    assert result.allowed is False
+    assert result.reason_code == "executor_failure"
+    assert ctx[4].execute.call_count == 2
+    chain = await ctx[1].get_chain("m-co-1")
+    assert [row.outcome for row in chain] == ["refusal"]
+    assert json.loads(chain[0].metadata_json) == {
+        "reason_code": "executor_failure",
+        "retried": True,
+    }
+    assert await ctx[1].verify_chain() is True
+
+
+@pytest.mark.asyncio
+async def test_run_execute_retries_5xx_shaped_failure(ctx):
+    """A 5xx from Razorpay is transient and gets the one retry."""
+    payment = {"id": "order_5xx", "amount": UNIT_PAISE}
+    ctx[4].execute.side_effect = [_HttpError(502), payment]
+
+    result = await _run(ctx)
+
+    assert result.allowed is True
+    assert result.payment == payment
+    assert ctx[4].execute.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_run_execute_does_not_retry_4xx_shaped_failure(ctx):
+    """A 4xx is the caller's fault: refuse immediately, do not re-send money."""
+    ctx[4].execute.side_effect = _HttpError(400)
+
+    result = await _run(ctx)
+
+    assert result.allowed is False
+    assert result.reason_code == "executor_failure"
+    ctx[4].execute.assert_called_once()
+    chain = await ctx[1].get_chain("m-co-1")
+    assert json.loads(chain[0].metadata_json) == {"reason_code": "executor_failure"}
+
+
+@pytest.mark.asyncio
+async def test_run_execute_does_not_retry_unknown_failure(ctx):
+    """An unclassified fault is not assumed transient."""
+    ctx[4].execute.side_effect = ValueError("bad payload")
+
+    result = await _run(ctx)
+
+    assert result.allowed is False
+    assert result.reason_code == "executor_failure"
+    ctx[4].execute.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_run_execute_backoff_is_injectable(ctx, monkeypatch):
+    """The retry waits for the injected backoff, so tests never sleep by default."""
+    slept: list[float] = []
+
+    async def _fake_sleep(seconds: float) -> None:
+        slept.append(seconds)
+
+    monkeypatch.setattr("src.services.checkout.asyncio.sleep", _fake_sleep)
+    ctx[4].execute.side_effect = [TimeoutError("chaos"), {"id": "order_backoff"}]
+
+    result = await _run(ctx, retry_backoff_seconds=0.25)
+
+    assert result.allowed is True
+    assert slept == [0.25]
