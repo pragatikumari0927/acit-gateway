@@ -39,6 +39,9 @@ async def lifespan(app: FastAPI):
     engine = get_engine()
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
+    # Load the Catalog now: a missing file must stop the container at boot, not
+    # pass the healthcheck and then 500 on the first catalog request.
+    get_catalog()
     yield
     # Shutdown
     await engine.dispose()
