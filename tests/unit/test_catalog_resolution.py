@@ -33,3 +33,14 @@ def test_repo_root_seed_is_a_loadable_catalog():
 def test_local_runs_still_prefer_the_test_fixture():
     """The seed is a fallback; adding it must not change local resolution."""
     assert Path(_default_catalog_file()) == REPO_ROOT / "tests" / "fixtures" / "catalogs.json"
+
+
+def test_resolves_root_seed_when_earlier_candidates_are_absent(tmp_path, monkeypatch):
+    """The container layout: no tests/ directory and an empty bind-mounted data/."""
+    (tmp_path / "data").mkdir()
+    seed = tmp_path / "catalogs.json"
+    seed.write_text((REPO_ROOT / "catalogs.json").read_text(encoding="utf-8"), encoding="utf-8")
+    monkeypatch.setattr("src.api.dependencies._REPO_ROOT", tmp_path)
+
+    assert Path(_default_catalog_file()) == seed
+    assert CatalogService(_default_catalog_file()).get_catalog("m_test").items
