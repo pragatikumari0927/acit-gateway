@@ -9,6 +9,7 @@ import asyncio
 import json
 from typing import Any
 
+from src.models.mandate import Mandate
 from src.models.proposal import CheckoutExecuteResult, Proposal
 from src.services.audit import AuditLogger
 from src.services.executor import PaymentExecutor
@@ -16,6 +17,41 @@ from src.services.firewall import PromptFirewall
 from src.services.policy import PolicyEngine
 from src.services.protocol_parser import ProtocolParseError, parse_envelope
 from src.services.vault import Vault
+
+RETRY_BACKOFF_SECONDS = 0.05
+
+
+def _is_transient(exc: BaseException) -> bool:
+    """True for faults worth one more attempt: timeouts, dropped connections, 5xx.
+
+    Razorpay's SDK cannot be imported in this environment, so the HTTP shape is
+    read off the exception rather than matched against its error classes.
+    """
+    if isinstance(exc, TimeoutError | ConnectionError):
+        return True
+    status = getattr(exc, "status_code", None)
+    return isinstance(status, int) and 500 <= status < 600
+
+
+async def _execute_once_with_retry(
+    executor: PaymentExecutor,
+    mandate: Mandate,
+    proposal: Proposal,
+    backoff_seconds: float,
+) -> dict[str, Any]:
+    """Run the Money action, retrying a transient fault exactly once.
+
+    A retried create_order can leave a duplicate test-mode order behind; that is
+    accepted here because the alternative is refusing a recoverable blip.
+    """
+    try:
+        return await asyncio.to_thread(executor.execute, mandate, proposal)
+    except Exception as exc:
+        if not _is_transient(exc):
+            raise
+        if backoff_seconds > 0:
+            await asyncio.sleep(backoff_seconds)
+        return await asyncio.to_thread(executor.execute, mandate, proposal)
 
 
 def _refuse(mandate_id: str, reason_code: str) -> CheckoutExecuteResult:
@@ -55,6 +91,7 @@ async def run_execute(
     policy: PolicyEngine,
     executor: PaymentExecutor,
     audit: AuditLogger,
+    retry_backoff_seconds: float = RETRY_BACKOFF_SECONDS,
 ) -> CheckoutExecuteResult:
     """Gate a Money action. Fail closed: any Refusal writes Audit and skips Razorpay."""
     parsed_mandate_id = proposal.mandate_id
@@ -96,7 +133,9 @@ async def run_execute(
         return _refuse(proposal.mandate_id, "mandate_invalid")
 
     try:
-        payment = await asyncio.to_thread(executor.execute, mandate, proposal)
+        payment = await _execute_once_with_retry(
+            executor, mandate, proposal, retry_backoff_seconds
+        )
     except Exception:  # noqa: BLE001 — fail-closed: any executor fault is a Refusal, never a 500
         await _audit_refusal(audit, proposal, "executor_failure", agent_id=mandate.agent_id)
         return _refuse(proposal.mandate_id, "executor_failure")
