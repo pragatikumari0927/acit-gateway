@@ -10,13 +10,14 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from src.api.dependencies import get_audit, get_idempotency, get_vault
+from src.api.dependencies import get_audit, get_catalog, get_idempotency, get_vault
 from src.api.routes import audit as audit_routes
 from src.api.routes import catalog as catalog_routes
 from src.api.routes import checkout as checkout_routes
 from src.api.routes import mandates as mandate_routes
 from src.config import settings
 from src.services.audit import AuditLogger
+from src.services.catalog import CatalogService
 from src.services.idempotency import IdempotencyStore
 from src.services.vault import Vault
 from src.services.webhook_apply import apply_verified_event, event_idempotency_key
@@ -79,13 +80,9 @@ class MCPResponse(BaseModel):
 # --- MCP Tools ---
 
 
-async def mcp_list_catalog_items(merchant_id: str | None = None) -> list[dict[str, Any]]:
-    """List catalog items (placeholder for C5)."""
-    # TODO: Implement actual catalog lookup via src/services/catalog.py
-    return [
-        {"sku": "SKU001", "name": "Test Product", "amount_paise": 1000, "currency": "INR"},
-        {"sku": "SKU002", "name": "Another Product", "amount_paise": 2500, "currency": "INR"},
-    ]
+def mcp_list_catalog_items(catalog: CatalogService, merchant_id: str) -> list[dict[str, Any]]:
+    """Return a merchant's Catalog items. Raises KeyError for an unknown merchant."""
+    return [item.model_dump() for item in catalog.get_catalog(merchant_id).items]
 
 
 # --- MCP Router ---
@@ -96,7 +93,10 @@ def create_mcp_app() -> FastAPI:
     mcp_app = FastAPI(title="ACIT MCP Server", version="1.0.0")
 
     @mcp_app.post("/")
-    async def mcp_endpoint(request: MCPRequest) -> MCPResponse:
+    async def mcp_endpoint(
+        request: MCPRequest,
+        catalog: CatalogService = Depends(get_catalog),
+    ) -> MCPResponse:
         """Handle MCP JSON-RPC requests."""
         if request.method == "initialize":
             return MCPResponse(
@@ -121,9 +121,10 @@ def create_mcp_app() -> FastAPI:
                                 "properties": {
                                     "merchant_id": {
                                         "type": "string",
-                                        "description": "Optional merchant ID to filter by",
+                                        "description": "Merchant whose Catalog to list",
                                     }
                                 },
+                                "required": ["merchant_id"],
                             },
                         }
                     ]
@@ -135,10 +136,22 @@ def create_mcp_app() -> FastAPI:
             args = request.params.get("arguments", {}) if request.params else {}
 
             if tool_name == "list_catalog_items":
-                items = await mcp_list_catalog_items(args.get("merchant_id"))
+                merchant_id = args.get("merchant_id")
+                if not merchant_id:
+                    return MCPResponse(
+                        id=request.id,
+                        error={"code": -32602, "message": "merchant_id is required"},
+                    )
+                try:
+                    items = mcp_list_catalog_items(catalog, str(merchant_id))
+                except KeyError:
+                    return MCPResponse(
+                        id=request.id,
+                        error={"code": -32602, "message": "merchant_not_found"},
+                    )
                 return MCPResponse(
                     id=request.id,
-                    result={"content": [{"type": "text", "text": str(items)}]},
+                    result={"content": [{"type": "text", "text": json.dumps(items)}]},
                 )
 
             return MCPResponse(
