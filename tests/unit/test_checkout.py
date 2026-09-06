@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
 from unittest.mock import MagicMock
 
@@ -202,6 +203,8 @@ async def test_run_execute_retries_once_after_transient_timeout(ctx):
     assert ctx[4].execute.call_count == 2
     chain = await ctx[1].get_chain("m-co-1")
     assert [row.outcome for row in chain] == ["ok"]
+    # A lost first response can leave an orphan order; the chain must show it.
+    assert json.loads(chain[0].metadata_json) == {"retried": True}
     assert await ctx[1].verify_chain() is True
 
 
@@ -217,6 +220,10 @@ async def test_run_execute_retry_is_bounded_to_one_extra_attempt(ctx):
     assert ctx[4].execute.call_count == 2
     chain = await ctx[1].get_chain("m-co-1")
     assert [row.outcome for row in chain] == ["refusal"]
+    assert json.loads(chain[0].metadata_json) == {
+        "reason_code": "executor_failure",
+        "retried": True,
+    }
     assert await ctx[1].verify_chain() is True
 
 
@@ -243,6 +250,8 @@ async def test_run_execute_does_not_retry_4xx_shaped_failure(ctx):
     assert result.allowed is False
     assert result.reason_code == "executor_failure"
     ctx[4].execute.assert_called_once()
+    chain = await ctx[1].get_chain("m-co-1")
+    assert json.loads(chain[0].metadata_json) == {"reason_code": "executor_failure"}
 
 
 @pytest.mark.asyncio
