@@ -12,8 +12,8 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 SRC_DIR = Path(__file__).resolve().parents[2] / "src"
-# A SKU identifier, e.g. SKU001 or SKU-001. Prose mentioning "SKU" is fine.
-SKU_LITERAL = re.compile(r"SKU[-_]?\d")
+# A SKU identifier, e.g. SKU001, SKU-001, SKU_ABC. Prose mentioning "SKU" is fine.
+SKU_LITERAL = re.compile(r"SKU[-_]?[A-Z0-9]")
 
 
 def _mcp_client() -> TestClient:
@@ -22,7 +22,7 @@ def _mcp_client() -> TestClient:
     return TestClient(create_mcp_app())
 
 
-def _call_tool(client: TestClient, arguments: dict) -> dict:
+def _call_tool(client: TestClient, arguments: object) -> dict:
     response = client.post(
         "/",
         json={
@@ -90,6 +90,17 @@ def test_mcp_catalog_missing_merchant_id_is_jsonrpc_error():
     assert body["result"] is None
     assert body["error"]["code"] == -32602
     assert body["error"]["message"] == "merchant_id is required"
+
+
+def test_mcp_catalog_rejects_malformed_arguments():
+    """A list `arguments` value or a non-string merchant_id is -32602, never a 500."""
+    client = _mcp_client()
+
+    for arguments in ([], {"merchant_id": 5}, {"merchant_id": ""}):
+        body = _call_tool(client, arguments)
+        assert body["result"] is None
+        assert body["error"]["code"] == -32602
+        assert body["error"]["message"] == "merchant_id is required"
 
 
 def test_mcp_tools_list_requires_merchant_id():

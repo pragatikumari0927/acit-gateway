@@ -8,7 +8,7 @@ from typing import Any
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ValidationError
 
 from src.api.dependencies import get_audit, get_catalog, get_idempotency, get_vault
 from src.api.routes import audit as audit_routes
@@ -80,6 +80,12 @@ class MCPResponse(BaseModel):
 # --- MCP Tools ---
 
 
+class ListCatalogItemsArgs(BaseModel):
+    """Arguments accepted by the `list_catalog_items` MCP tool."""
+
+    merchant_id: str = Field(min_length=1)
+
+
 def mcp_list_catalog_items(catalog: CatalogService, merchant_id: str) -> list[dict[str, Any]]:
     """Return a merchant's Catalog items. Raises KeyError for an unknown merchant."""
     return [item.model_dump() for item in catalog.get_catalog(merchant_id).items]
@@ -136,14 +142,15 @@ def create_mcp_app() -> FastAPI:
             args = request.params.get("arguments", {}) if request.params else {}
 
             if tool_name == "list_catalog_items":
-                merchant_id = args.get("merchant_id")
-                if not merchant_id:
+                try:
+                    tool_args = ListCatalogItemsArgs.model_validate(args)
+                except ValidationError:
                     return MCPResponse(
                         id=request.id,
                         error={"code": -32602, "message": "merchant_id is required"},
                     )
                 try:
-                    items = mcp_list_catalog_items(catalog, str(merchant_id))
+                    items = mcp_list_catalog_items(catalog, tool_args.merchant_id)
                 except KeyError:
                     return MCPResponse(
                         id=request.id,
