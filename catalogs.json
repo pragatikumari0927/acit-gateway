@@ -1,0 +1,43 @@
+{
+  "m_test": {
+    "merchant_id": "m_test",
+    "merchant_name": "Test Merchant",
+    "items": [
+      {
+        "sku": "SKU-001",
+        "name": "Widget",
+        "description": "A useful widget",
+        "unit_amount_paise": 19900,
+        "inventory": 42,
+        "discount_bounds": {"min_percent": 0, "max_percent": 15},
+        "categories": ["gadget"]
+      },
+      {
+        "sku": "SKU-002",
+        "name": "Gadget Pro",
+        "description": "Advanced gadget",
+        "unit_amount_paise": 49900,
+        "inventory": 7,
+        "discount_bounds": {"min_percent": 5, "max_percent": 20},
+        "categories": ["gadget", "pro"]
+      }
+    ],
+    "updated_at": "2026-09-02T00:00:00Z"
+  },
+  "m_other": {
+    "merchant_id": "m_other",
+    "merchant_name": "Other Merchant",
+    "items": [
+      {
+        "sku": "SKU-999",
+        "name": "Thing",
+        "description": "",
+        "unit_amount_paise": 100,
+        "inventory": 100,
+        "discount_bounds": {"min_percent": 0, "max_percent": 0},
+        "categories": []
+      }
+    ],
+    "updated_at": "2026-09-02T00:00:00Z"
+  }
+}

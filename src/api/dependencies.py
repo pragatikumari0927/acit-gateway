@@ -48,10 +48,16 @@ def _db_path_from_url(url: str) -> str:
 
 
 def _default_catalog_file() -> str:
-    """Resolve catalogs.json without introducing a new env var."""
+    """Resolve catalogs.json without introducing a new env var.
+
+    The repo-root seed is last so local runs keep using the fixture, but it is
+    the only candidate that survives into the container image: `tests/` is not
+    copied and `/app/data` is shadowed by the compose bind mount.
+    """
     candidates = (
         _REPO_ROOT / "tests" / "fixtures" / "catalogs.json",
         _REPO_ROOT / "data" / "catalogs.json",
+        _REPO_ROOT / "catalogs.json",
     )
     for path in candidates:
         if path.is_file():

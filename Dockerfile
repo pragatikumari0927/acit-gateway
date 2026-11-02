@@ -41,6 +41,10 @@ COPY --from=builder --chown=app:app /app/.venv /app/.venv
 # Copy source code
 COPY --from=builder --chown=app:app /app/src /app/src
 
+# Seed Catalog. tests/ is not in the image and /app/data is bind-mounted, so
+# this is the only candidate _default_catalog_file() can resolve at runtime.
+COPY --chown=app:app catalogs.json /app/catalogs.json
+
 # Create data directory
 RUN mkdir -p /app/data && chown -R app:app /app/data
 
