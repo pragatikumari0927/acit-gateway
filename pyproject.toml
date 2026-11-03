@@ -13,7 +13,7 @@ dependencies = [
     "sqlalchemy==2.0.52",
     "aiosqlite==0.19.0",
     "razorpay==1.4.2",
-    "pyjwt==2.7.0",
+    "pyjwt>=2.14.0,<3",
     "cryptography==41.0.7",
     "python-multipart>=0.0.31,<0.1",
     "email-validator>=1.1.0,<2.1",
