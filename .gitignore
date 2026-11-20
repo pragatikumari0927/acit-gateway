@@ -37,3 +37,7 @@ GRAPH_REPORT.html
 data/
 .coverage
 providers.json
+
+# Local AI agent config (not project code)
+.cursor/
+.agents/
