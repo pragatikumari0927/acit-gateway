@@ -5,7 +5,7 @@ description = "ACIT Gateway — test-mode agentic payment bridge (Razorpay Build
 readme = "docs/README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "fastapi==0.104.1",
+    "fastapi>=0.125,<1",
     "uvicorn[standard]==0.24.0",
     "pydantic>=2.9.0",
     "pydantic-settings==2.1.0",
