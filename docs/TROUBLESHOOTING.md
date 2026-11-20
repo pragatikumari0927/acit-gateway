@@ -248,7 +248,8 @@ Refusal is a `PolicyResult` / `CheckoutExecuteResult`: `allowed`, `reason_code`,
 | Stale `docs/AGENTS.md` | Claims empty `src/`/`tests/`; no `run_execute` | Known stale | Use `checkout.py` + `MEMORY.md` |
 | No CI workflow | No Actions runs | RESOLVED — `.github/workflows/test.yml` (SHA-pinned checkout + setup-uv, `uv sync --extra dev`, ruff, pytest) | Local `uv run pytest -q` still valid |
 | Python drift | venv 3.14.6 vs docs 3.11 | Known | Read `requires-python`; `.venv` still runs tests |
-| In-memory `_idempotency_keys` | Redelivery after restart / multi-worker | Known gap | Single worker; reconcile after restart |
+| In-memory `_idempotency_keys` | Redelivery after restart / multi-worker | RESOLVED — durable `IdempotencyStore` on the Vault/Audit SQLite file | Redelivery returns `already_processed` |
+| Catalog missing in container | `/health` green but `/v1/catalog` 500s | RESOLVED — repo-root `catalogs.json` seed is `COPY`d into the image and loaded during lifespan | `docker compose logs app` shows the boot failure instead |
 | Duplicate rule generations | Two files per topic | Known | Keep both; money-path wins |
 | `uv run pytest` unsatisfiable | `fastapi-users==12.1.0` METADATA `Requires-Dist: python-multipart==0.0.6` vs manifest `==0.0.32`; 0.0.6 is below CVE-2024-24762 (patched 0.0.7) | RESOLVED-BY-PIN (submission freeze): `python-multipart==0.0.6` matches fastapi-users' exact pin; `uv sync` restores. Known trade-off: CVE-2024-24762 ReDoS class in 0.0.6 — accepted for a test-mode gateway (DoS class only, no live keys); modernization (fastapi-users bump -> patched python-multipart) is a registered post-hackathon task. | `uv run pytest -q` |
 | Graphify root leftovers | Working `.graphify_*` files land in repo root | Known — skill wrote CWD temps | Move them into `graphify-out/` after each run |
