@@ -50,6 +50,12 @@ show_missing = true
 [tool.ruff]
 line-length = 100
 
+[tool.ruff.lint]
+# FastAPI Depends() in parameter defaults is idiomatic. Migrating call
+# sites to Annotated[X, Depends()] is a backlog ticket — do not add
+# per-site noqas for B008.
+ignore = ["B008"]
+
 [tool.mypy]
 python_version = "3.11"
 warn_return_any = true

@@ -13,6 +13,7 @@ from src.models.catalog import (
     CatalogResponse,
     DiscountBounds,
 )
+from src.services.catalog import CatalogService
 
 
 def test_discount_bounds_valid_construction():
@@ -79,9 +80,6 @@ def test_catalog_response_construction():
 
 
 # --- C2 service seams (red-green next vertical slice) ---
-
-from src.services.catalog import CatalogService
-
 
 def test_catalog_service_injects_catalog_file(tmp_path):
     # Use the committed fixture path (service must accept it)

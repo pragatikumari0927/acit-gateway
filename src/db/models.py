@@ -33,6 +33,13 @@ class DenylistRow(SQLModel, table=True):
     added_at: str
 
 
+class IdempotencyRow(SQLModel, table=True):
+    __tablename__ = "idempotency_keys"
+
+    event_id: str = Field(primary_key=True)
+    created_at: str
+
+
 class AuditRow(SQLModel, table=True):
     __tablename__ = "audit"
 

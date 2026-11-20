@@ -8,7 +8,7 @@ import pytest
 @pytest.mark.asyncio
 async def test_audit_hash_chain_genesis(tmp_path):
     """First entry's previous_hash must be 64 zeros; chain verifies."""
-    from src.services.audit import AuditLogger, GENESIS_HASH
+    from src.services.audit import GENESIS_HASH, AuditLogger
 
     db = tmp_path / "a1.db"
     audit = AuditLogger(db)

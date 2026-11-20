@@ -1,0 +1,16 @@
+{
+  "description": "Memory mine hook for grok agent (installed via ai-memory equivalent)",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "mempalace mine . --wing acit-gateway",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  }
+}

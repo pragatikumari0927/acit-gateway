@@ -1,28 +1,33 @@
 """ACIT Gateway — FastAPI application entry point."""
 
+import hashlib
+import hmac
+import json
 from contextlib import asynccontextmanager
 from typing import Any
-import hmac
-import hashlib
 
-from fastapi import FastAPI, Request, Header, HTTPException, Response
+from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ValidationError
 
+from src.api.dependencies import get_audit, get_catalog, get_idempotency, get_vault
 from src.api.routes import audit as audit_routes
 from src.api.routes import catalog as catalog_routes
 from src.api.routes import checkout as checkout_routes
 from src.api.routes import mandates as mandate_routes
 from src.config import settings
-from src.services.vault import Vault, VaultError
+from src.services.audit import AuditLogger
+from src.services.catalog import CatalogService
+from src.services.idempotency import IdempotencyStore
+from src.services.vault import Vault
+from src.services.webhook_apply import apply_verified_event, event_idempotency_key
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan events."""
     # Startup
-    print(f"Starting ACIT Gateway on port 8000")
+    print("Starting ACIT Gateway on port 8000")
     print(f"Database: {settings.DATABASE_URL}")
     print(f"Chaos enabled: {settings.CHAOS_ENABLED}")
     print(f"MCP enabled: {settings.MCP_ENABLED}")
@@ -43,25 +48,12 @@ async def lifespan(app: FastAPI):
 # --- Razorpay Webhook Verification (native HMAC-SHA256) ---
 
 
-def verify_razorpay_webhook_signature(body: str, signature: str, secret: str) -> bool:
-    """
-    Verify Razorpay webhook signature using HMAC-SHA256.
-    
-    Implements the same logic as razorpay.utility.verify_webhook_signature
-    without requiring pkg_resources.
-    """
+def verify_razorpay_webhook_signature(body: str | bytes, signature: str, secret: str) -> bool:
+    """Verify Razorpay webhook HMAC-SHA256 over the raw request body."""
     key = secret.encode("utf-8")
-    msg = body.encode("utf-8")
-    
-    dig = hmac.new(key=key, msg=msg, digestmod=hashlib.sha256)
-    generated_signature = dig.hexdigest()
-    
-    # Use hmac.compare_digest for constant-time comparison (Python 3.3+)
+    msg = body if isinstance(body, bytes) else body.encode("utf-8")
+    generated_signature = hmac.new(key=key, msg=msg, digestmod=hashlib.sha256).hexdigest()
     return hmac.compare_digest(generated_signature, signature)
-
-
-# --- Idempotency store (in-memory for demo, could be Redis/SQLite) ---
-_idempotency_keys: set[str] = set()
 
 
 # --- MCP Models ---
@@ -88,13 +80,15 @@ class MCPResponse(BaseModel):
 # --- MCP Tools ---
 
 
-async def mcp_list_catalog_items(merchant_id: str | None = None) -> list[dict[str, Any]]:
-    """List catalog items (placeholder for C5)."""
-    # TODO: Implement actual catalog lookup via src/services/catalog.py
-    return [
-        {"sku": "SKU001", "name": "Test Product", "amount_paise": 1000, "currency": "INR"},
-        {"sku": "SKU002", "name": "Another Product", "amount_paise": 2500, "currency": "INR"},
-    ]
+class ListCatalogItemsArgs(BaseModel):
+    """Arguments accepted by the `list_catalog_items` MCP tool."""
+
+    merchant_id: str = Field(min_length=1)
+
+
+def mcp_list_catalog_items(catalog: CatalogService, merchant_id: str) -> list[dict[str, Any]]:
+    """Return a merchant's Catalog items. Raises KeyError for an unknown merchant."""
+    return [item.model_dump() for item in catalog.get_catalog(merchant_id).items]
 
 
 # --- MCP Router ---
@@ -105,7 +99,10 @@ def create_mcp_app() -> FastAPI:
     mcp_app = FastAPI(title="ACIT MCP Server", version="1.0.0")
 
     @mcp_app.post("/")
-    async def mcp_endpoint(request: MCPRequest) -> MCPResponse:
+    async def mcp_endpoint(
+        request: MCPRequest,
+        catalog: CatalogService = Depends(get_catalog),
+    ) -> MCPResponse:
         """Handle MCP JSON-RPC requests."""
         if request.method == "initialize":
             return MCPResponse(
@@ -130,9 +127,10 @@ def create_mcp_app() -> FastAPI:
                                 "properties": {
                                     "merchant_id": {
                                         "type": "string",
-                                        "description": "Optional merchant ID to filter by",
+                                        "description": "Merchant whose Catalog to list",
                                     }
                                 },
+                                "required": ["merchant_id"],
                             },
                         }
                     ]
@@ -144,10 +142,23 @@ def create_mcp_app() -> FastAPI:
             args = request.params.get("arguments", {}) if request.params else {}
 
             if tool_name == "list_catalog_items":
-                items = await mcp_list_catalog_items(args.get("merchant_id"))
+                try:
+                    tool_args = ListCatalogItemsArgs.model_validate(args)
+                except ValidationError:
+                    return MCPResponse(
+                        id=request.id,
+                        error={"code": -32602, "message": "merchant_id is required"},
+                    )
+                try:
+                    items = mcp_list_catalog_items(catalog, tool_args.merchant_id)
+                except KeyError:
+                    return MCPResponse(
+                        id=request.id,
+                        error={"code": -32602, "message": "merchant_not_found"},
+                    )
                 return MCPResponse(
                     id=request.id,
-                    result={"content": [{"type": "text", "text": str(items)}]},
+                    result={"content": [{"type": "text", "text": json.dumps(items)}]},
                 )
 
             return MCPResponse(
@@ -229,64 +240,53 @@ async def root():
 async def razorpay_webhook(
     request: Request,
     x_razorpay_signature: str | None = Header(None, alias="X-Razorpay-Signature"),
+    store: IdempotencyStore = Depends(get_idempotency),
+    vault: Vault = Depends(get_vault),
+    audit: AuditLogger = Depends(get_audit),
 ) -> Response:
-    """
-    Handle Razorpay webhook events.
-    
-    Verifies webhook signature using HMAC-SHA256.
-    Implements idempotency using mandate_id from payload.
-    """
-    # Get raw body bytes
+    """Verify HMAC, claim the event, then apply Mandate + Audit (persist-then-apply)."""
     body = await request.body()
-    body_str = body.decode("utf-8")
-    
+
     if not x_razorpay_signature:
         raise HTTPException(status_code=400, detail="Missing X-Razorpay-Signature header")
-    
+
     try:
-        # Verify signature using native HMAC-SHA256
         if not verify_razorpay_webhook_signature(
-            body=body_str,
+            body=body,
             signature=x_razorpay_signature,
             secret=settings.RAZORPAY_WEBHOOK_SECRET,
         ):
             raise ValueError("Signature mismatch")
     except ValueError:
         raise HTTPException(status_code=401, detail="Invalid webhook signature")
-    
-    # Parse JSON payload
-    import json
-    payload = json.loads(body_str)
-    
-    # Extract mandate_id for idempotency (from entity or payment_link)
-    mandate_id = None
-    event_type = payload.get("event")
-    
-    # Razorpay webhook payload structure varies by event type
-    # Common structure: {"event": "payment.captured", "payload": {"payment": {"entity": {...}}}}
-    if "payload" in payload:
-        entity = payload["payload"].get("payment", {}).get("entity", {})
-        base_id = entity.get("order_id") or entity.get("id")
-        # Include event_type to differentiate events for the same payment/order
-        if base_id:
-            mandate_id = f"{event_type}:{base_id}"
-    
-    # Fallback to event type if no mandate_id found
-    if not mandate_id:
-        mandate_id = f"{event_type}_{payload.get('created_at', '')}"
-    
-    # Check idempotency
-    if mandate_id in _idempotency_keys:
-        # Already processed - return success (idempotent)
-        return Response(content='{"status": "already_processed"}', media_type="application/json")
-    
-    # Mark as processed
-    _idempotency_keys.add(mandate_id)
-    
-    # TODO: Process webhook event (payment.captured, payment.failed, etc.)
-    # This would typically update mandate status, trigger audit, etc.
-    
-    return Response(content='{"status": "success"}', media_type="application/json")
+
+    try:
+        payload = json.loads(body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return Response(
+            content='{"status": "error", "reason": "malformed_json"}',
+            media_type="application/json",
+        )
+    if not isinstance(payload, dict):
+        return Response(
+            content='{"status": "error", "reason": "malformed_json"}',
+            media_type="application/json",
+        )
+
+    event_id = event_idempotency_key(payload)
+    if not await store.mark(event_id):
+        return Response(
+            content='{"status": "already_processed"}',
+            media_type="application/json",
+        )
+
+    result = await apply_verified_event(
+        vault=vault,
+        audit=audit,
+        payload=payload,
+        event_id=event_id,
+    )
+    return Response(content=json.dumps(result), media_type="application/json")
 
 
 app.include_router(catalog_routes.router, prefix="/v1")

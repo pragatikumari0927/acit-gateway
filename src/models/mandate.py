@@ -36,6 +36,8 @@ class Mandate(BaseModel):
     sku_allowlist: list[str] = Field(min_length=1)
     expires_at: datetime
     items: list[OrderItem] = Field(default_factory=list)
+    payment_status: str | None = None
+    last_payment_id: str | None = None
 
 
 InternalMandate = Mandate

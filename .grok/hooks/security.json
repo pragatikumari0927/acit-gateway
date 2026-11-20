@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [{
+          "type": "command",
+          "command": "./.grok/hooks/validate-command.sh",
+          "timeout": 5
+        }]
+      }
+    ]
+  }
+}

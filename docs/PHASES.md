@@ -87,7 +87,7 @@ Prompt 8 numbering. Design docs (ARCHITECTURE.md, design.md, CONTEXT.md) are in 
 #### Specific tasks with checkboxes and dependencies
 - [x] Day 7 (1 Sep): Implement C7 (Chaos Test) — `src/services/chaos.py` (failure injection harness: timeouts, 5xx, bad JSON, rate limits — **only** against Razorpay adapter)
   - Depends on: Phase 3 Razorpay integration
-- [ ] Day 7: Add retry logic + graceful degradation for injected failures (still produce Refusal + Audit)
+- [x] Day 7: Add retry logic + graceful degradation for injected failures (still produce Refusal + Audit)
   - Depends on: C7
 - [x] Day 7: Unit/chaos tests for C7
   - Depends on: C7 + retry
@@ -97,7 +97,7 @@ Prompt 8 numbering. Design docs (ARCHITECTURE.md, design.md, CONTEXT.md) are in 
   - Depends on: all prior phases + C7/C8
 - [x] Day 8: Run complete test matrix (`pytest tests/unit tests/integration tests/chaos -q`); fix until all green
   - Depends on: test implementations
-- [ ] Day 8: One graceful failure path (chaos → Refusal + verified Audit chain)
+- [x] Day 8: One graceful failure path (chaos → Refusal + verified Audit chain)
   - Depends on: full Phase 4
 
 ### Phase 5: Documentation & Submission (Days 9‑10)
