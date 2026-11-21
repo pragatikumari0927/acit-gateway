@@ -5,7 +5,7 @@
 FROM python:3.11-slim AS builder
 
 # Install uv
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.13.9 /uv /bin/uv
 
 # Set uv to link mode for faster installs and smaller images
 ENV UV_LINK_MODE=copy \
@@ -23,6 +23,9 @@ RUN uv sync --frozen --no-dev --no-install-project
 
 # Copy source code
 COPY src/ ./src/
+
+# hatchling reads readme = "docs/README.md" from pyproject.toml
+COPY docs/README.md docs/README.md
 
 # Install the project
 RUN uv sync --frozen --no-dev
