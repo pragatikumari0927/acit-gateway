@@ -247,7 +247,7 @@ async def razorpay_webhook(
     vault: Vault = Depends(get_vault),
     audit: AuditLogger = Depends(get_audit),
 ) -> Response:
-    """Verify HMAC, claim the event, then apply Mandate + Audit (persist-then-apply)."""
+    """Verify HMAC, claim the event, apply Mandate + Audit, keep the claim only on success."""
     body = await request.body()
 
     if not x_razorpay_signature:
@@ -283,12 +283,16 @@ async def razorpay_webhook(
             media_type="application/json",
         )
 
-    result = await apply_verified_event(
-        vault=vault,
-        audit=audit,
-        payload=payload,
-        event_id=event_id,
-    )
+    try:
+        result = await apply_verified_event(
+            vault=vault,
+            audit=audit,
+            payload=payload,
+            event_id=event_id,
+        )
+    except Exception:
+        await store.unmark(event_id)
+        raise
     return Response(content=json.dumps(result), media_type="application/json")
 
 

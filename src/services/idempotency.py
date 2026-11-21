@@ -87,3 +87,14 @@ class IdempotencyStore:
         if last_error is not None:
             raise last_error
         return False
+
+    async def unmark(self, event_id: str) -> None:
+        """Drop a previously claimed event_id so a later retry can apply it."""
+        await self._ensure_schema_once()
+        async with AsyncSession(self.engine) as session:
+            row = await session.get(IdempotencyRow, event_id)
+            if row is None:
+                return
+            await session.delete(row)
+            await session.commit()
+

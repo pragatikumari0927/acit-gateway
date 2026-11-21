@@ -82,6 +82,34 @@ class Vault:
                 )
             await session.commit()
 
+    async def apply_payment_update(
+        self,
+        mandate_id: str,
+        payment_status: str,
+        last_payment_id: str | None,
+    ) -> str:
+        """Write only payment_status and last_payment_id on the stored payload.
+
+        Never moves a captured payment back to failed. Other stored mandate
+        fields are kept as they currently are in the database.
+        Returns "applied", "already_captured", or "missing".
+        """
+        await self._ensure_schema_once()
+        async with AsyncSession(self.engine) as session:
+            row = await session.get(MandateRow, mandate_id)
+            if row is None:
+                return "missing"
+            mandate = Mandate.model_validate_json(row.payload)
+            if mandate.payment_status == "captured" and payment_status == "failed":
+                return "already_captured"
+            mandate.payment_status = payment_status
+            if last_payment_id is not None:
+                mandate.last_payment_id = last_payment_id
+            row.payload = mandate.model_dump_json()
+            session.add(row)
+            await session.commit()
+        return "applied"
+
     async def verify_signature(self, token: str, agent_id: str) -> dict[str, Any]:
         await self._ensure_schema_once()
         async with AsyncSession(self.engine) as session:
