@@ -83,3 +83,20 @@ async def test_unique_constraint_race_second_insert_absorbed(tmp_path):
 
     assert await worker_a.seen(event_id) is True
     assert await worker_b.seen(event_id) is True
+
+
+@pytest.mark.asyncio
+async def test_unmark_allows_a_later_mark(tmp_path):
+    """Releasing a claim must make a later mark() succeed again."""
+    from src.services.idempotency import IdempotencyStore
+
+    store = IdempotencyStore(tmp_path / "idem-unmark.db")
+    event_id = "evt-released"
+
+    assert await store.mark(event_id) is True
+    assert await store.seen(event_id) is True
+    await store.unmark(event_id)
+    assert await store.seen(event_id) is False
+    assert await store.mark(event_id) is True
+    assert await store.seen(event_id) is True
+

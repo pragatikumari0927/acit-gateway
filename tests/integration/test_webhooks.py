@@ -443,5 +443,89 @@ def test_webhook_resolves_mandate_from_notes(isolated_webhook_services):
     assert stored.last_payment_id == "pay_notes_1"
 
 
+def test_late_payment_failed_does_not_overwrite_captured(isolated_webhook_services):
+    """A payment.failed event that arrives after payment.captured must leave captured in place."""
+    import asyncio
+
+    from src.main import app
+
+    vault = isolated_webhook_services["vault"]
+    asyncio.run(vault.store_mandate(_mandate(mandate_id="order_captured_first")))
+
+    client = TestClient(app)
+    captured = _post_signed(
+        client,
+        _make_webhook_payload(
+            event="payment.captured",
+            payment_id="pay_captured_keep",
+            order_id="order_captured_first",
+        ),
+    )
+    assert captured.status_code == 200
+    assert captured.json()["status"] == "applied"
+
+    failed = _post_signed(
+        client,
+        _make_webhook_payload(
+            event="payment.failed",
+            payment_id="pay_late_fail",
+            order_id="order_captured_first",
+        ),
+    )
+    assert failed.status_code == 200
+    assert failed.json() == {"status": "not_applied", "reason": "already_captured"}
+
+    stored = asyncio.run(vault.get_mandate("order_captured_first"))
+    assert stored is not None
+    assert stored.payment_status == "captured"
+    assert stored.last_payment_id == "pay_captured_keep"
+
+
+def test_failed_apply_releases_claim_so_retry_can_apply(isolated_webhook_services, monkeypatch):
+    """If apply raises after the event is claimed, the claim is released for a retry."""
+    import asyncio
+
+    from fastapi.testclient import TestClient as FastAPITestClient
+
+    from src.main import app
+
+    vault = isolated_webhook_services["vault"]
+    store = isolated_webhook_services["store"]
+    asyncio.run(vault.store_mandate(_mandate(mandate_id="order_retry_apply")))
+
+    calls = {"n": 0}
+    real = __import__("src.services.webhook_apply", fromlist=["apply_verified_event"]).apply_verified_event
+
+    async def boom(*args, **kwargs):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise RuntimeError("simulated write failure")
+        return await real(*args, **kwargs)
+
+    monkeypatch.setattr("src.main.apply_verified_event", boom)
+
+    payload = _make_webhook_payload(
+        event="payment.captured",
+        payment_id="pay_retry_1",
+        order_id="order_retry_apply",
+    )
+    event_id = "payment.captured:order_retry_apply"
+
+    failing_client = FastAPITestClient(app, raise_server_exceptions=False)
+    first = _post_signed(failing_client, payload)
+    assert first.status_code == 500
+    assert asyncio.run(store.seen(event_id)) is False
+
+    second = _post_signed(failing_client, payload)
+    assert second.status_code == 200
+    assert second.json()["status"] == "applied"
+    stored = asyncio.run(vault.get_mandate("order_retry_apply"))
+    assert stored is not None
+    assert stored.payment_status == "captured"
+    assert stored.last_payment_id == "pay_retry_1"
+    assert asyncio.run(store.seen(event_id)) is True
+
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
