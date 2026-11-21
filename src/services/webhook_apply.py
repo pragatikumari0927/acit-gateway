@@ -96,13 +96,25 @@ async def apply_verified_event(
 
     payment_status = _status_for_event(str(event_type))
     payment_id = entity.get("id")
-    updated = mandate.model_copy(
-        update={
-            "payment_status": payment_status,
-            "last_payment_id": str(payment_id) if payment_id else None,
-        }
+    outcome = await vault.apply_payment_update(
+        mandate.mandate_id,
+        payment_status,
+        str(payment_id) if payment_id else None,
     )
-    await vault.store_mandate(updated)
+    if outcome == "missing":
+        logger.info(
+            "webhook outcome event_id=%s event_type=%s outcome=not_applied",
+            event_id,
+            event_type,
+        )
+        return {"status": "not_applied", "reason": "mandate_not_found"}
+    if outcome == "already_captured":
+        logger.info(
+            "webhook outcome event_id=%s event_type=%s outcome=not_applied",
+            event_id,
+            event_type,
+        )
+        return {"status": "not_applied", "reason": "already_captured"}
     await audit.log_entry(
         {
             "action": "webhook.apply",
